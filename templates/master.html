@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Data Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Define a custom primary color (Deep Red/Crimson) */
+        :root {
+            --bs-primary: #A52A2A; /* Brown/Maroon for a professional red look */
+            --bs-primary-rgb: 165, 42, 42;
+            --bs-success: #28a745;
+            --bs-danger: #dc3545;
+        }
+
+        /* Override Bootstrap Primary */
+        .bg-primary, .btn-primary, .text-primary, .navbar-dark.bg-primary {
+            background-color: var(--bs-primary) !important;
+            color: white !important;
+        }
+        .btn-primary:hover {
+            background-color: #8b2323 !important;
+            border-color: #8b2323 !important;
+        }
+        .text-primary {
+            color: var(--bs-primary) !important;
+        }
+        .btn-outline-primary {
+            color: var(--bs-primary);
+            border-color: var(--bs-primary);
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--bs-primary);
+            color: white;
+        }
+
+        /* Navbar active link style */
+        .navbar-nav .nav-link.active {
+            font-weight: bold;
+            border-bottom: 3px solid white; /* Highlight active link */
+        }
+
+        /* Filter Card Styling */
+        .filter-card {
+            background-color: #fff; /* White background */
+            border-left: 5px solid var(--bs-primary); /* Red accent border */
+            box-shadow: 0 4px 6px rgba(0,0,0,.05); /* Subtle shadow for depth */
+            border-radius: .5rem;
+        }
+
+        /* Tabs Styling */
+        .nav-tabs .nav-link {
+            color: #6c757d; /* Default tab text color */
+            border: none;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-tabs .nav-link.active {
+            color: var(--bs-primary); /* Active tab text color is red */
+            border-bottom: 2px solid var(--bs-primary); /* Red underline for active tab */
+            background-color: transparent;
+            font-weight: 600;
+        }
+        .nav-tabs {
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        /* General Card Styling */
+        .card {
+            border: none; /* Remove default border */
+            box-shadow: 0 0 20px rgba(0,0,0,.05); /* Soft shadow for a modern look */
+            border-radius: .5rem;
+        }
+
+        /* Table Styling */
+        .table-striped > tbody > tr:nth-of-type(odd) > * {
+            background-color: rgba(165, 42, 42, 0.05); /* Light red tint for striped rows */
+        }
+        .table-bordered {
+            border: 1px solid #dee2e6;
+        }
+        .table thead th {
+            background-color: var(--bs-primary);
+            color: white;
+            border-color: var(--bs-primary);
+            font-weight: 600;
+        }
+        .table-sm-danger {
+            background-color: var(--bs-danger);
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">Warehouse Ops</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{ url_for('master') }}">Master Data</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('daily_input') }}">Daily Input</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('summary') }}">Summary</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('config') }}">Config</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <h2 class="mb-4 text-primary fw-light">Master Data Management</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="card mb-5 p-4 filter-card">
+        <h5 class="card-title text-primary mb-3">🔍 Filter Master Data</h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="masterCustomerFilter" class="form-label text-muted">Customer</label>
+                <select id="masterCustomerFilter" class="form-select">
+                    <option value="">All Customers</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="masterLocationFilter" class="form-label text-muted">Location</label>
+                <select id="masterLocationFilter" class="form-select">
+                    <option value="">All Locations</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-outline-primary w-100 py-2" onclick="applyMasterFilter()">Apply Filter (Client-Side)</button>
+            </div>
+        </div>
+        <small class="text-muted mt-3">Note: Filtering is for UI presentation only; tables are fully server-side managed.</small>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="masterTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="manpower-tab" data-bs-toggle="tab" data-bs-target="#manpower" type="button" role="tab" aria-controls="manpower" aria-selected="true">👤 Manpower</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="operational-tab" data-bs-toggle="tab" data-bs-target="#operational" type="button" role="tab" aria-controls="operational" aria-selected="false">⚙️ Operational</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="consumables-tab" data-bs-toggle="tab" data-bs-target="#consumables" type="button" role="tab" aria-controls="consumables" aria-selected="false">📦 Consumables</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="masterTabsContent">
+
+        <div class="tab-pane fade show active" id="manpower" role="tabpanel" aria-labelledby="manpower-tab">
+            <div class="card mb-5">
+                <div class="card-body">
+                    <h5 class="card-title text-primary mb-3">➕ Add Manpower Role</h5>
+                    <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="category" value="manpower">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="manpower_customer" class="form-label visually-hidden">Customer</label>
+                                <select name="customer" id="manpower_customer" class="form-select form-customer" required>
+                                    <option value="">Select Customer</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="manpower_role_name" class="form-label visually-hidden">Role Name</label>
+                                <input type="text" name="role_name" id="manpower_role_name" class="form-control" placeholder="Role Name" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="manpower_location" class="form-label visually-hidden">Location</label>
+                                <select name="location" id="manpower_location" class="form-select form-location" required>
+                                    <option value="">Select Location</option>
+                                    {% for loc in locations %}<option value="{{ loc }}">{{ loc }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="manpower_monthly_salary" class="form-label visually-hidden">Monthly Salary</label>
+                                <input type="number" step="0.01" name="monthly_salary" id="manpower_monthly_salary" class="form-control" placeholder="Monthly Salary" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="manpower_ot_cost" class="form-label visually-hidden">OT Cost</label>
+                                <input type="number" step="0.01" name="ot_cost" id="manpower_ot_cost" class="form-control" placeholder="OT Cost">
+                            </div>
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary w-100 py-2">Add Role</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-primary mb-3">📋 Existing Manpower Roles</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Role Name</th>
+                                    <th>Location</th>
+                                    <th>Monthly Salary</th>
+                                    <th>Daily Cost</th>
+                                    <th>OT Cost</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in manpower_data %}
+                                <tr>
+                                    <td>{{ role.customer }}</td>
+                                    <td>{{ role.role_name }}</td>
+                                    <td>{{ role.location }}</td>
+                                    <td>{{ role.monthly_salary }}</td>
+                                    <td>{{ role.daily_cost }}</td>
+                                    <td>{{ role.ot_cost }}</td>
+                                    <td>
+                                        <a href="{{ url_for('delete_entry', category='manpower', index=role.id) }}" class="btn btn-sm btn-danger">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="operational" role="tabpanel" aria-labelledby="operational-tab">
+            <div class="card mb-5">
+                <div class="card-body">
+                    <h5 class="card-title text-primary mb-3">➕ Add Operational Cost</h5>
+                    <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="category" value="operational">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="operational_customer" class="form-label visually-hidden">Customer</label>
+                                <select name="customer" id="operational_customer" class="form-select form-customer" required>
+                                    <option value="">Select Customer</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="operational_cost_type" class="form-label visually-hidden">Cost Type</label>
+                                <input type="text" name="cost_type" id="operational_cost_type" class="form-control" placeholder="Cost Type" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="operational_location" class="form-label visually-hidden">Location</label>
+                                <select name="location" id="operational_location" class="form-select form-location" required>
+                                    <option value="">Select Location</option>
+                                    {% for loc in locations %}<option value="{{ loc }}">{{ loc }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="operational_daily_cost" class="form-label visually-hidden">Daily Cost</label>
+                                <input type="number" step="0.01" name="daily_cost" id="operational_daily_cost" class="form-control" placeholder="Daily Cost" required>
+                            </div>
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary w-100 py-2">Add Cost</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-primary mb-3">📋 Existing Operational Costs</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Cost Type</th>
+                                    <th>Location</th>
+                                    <th>Daily Cost</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for op in operational_data %}
+                                <tr>
+                                    <td>{{ op.customer }}</td>
+                                    <td>{{ op.cost_type }}</td>
+                                    <td>{{ op.location }}</td>
+                                    <td>{{ op.daily_cost }}</td>
+                                    <td>
+                                        <a href="{{ url_for('delete_entry', category='operational', index=op.id) }}" class="btn btn-sm btn-danger">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="consumables" role="tabpanel" aria-labelledby="consumables-tab">
+            <div class="card mb-5">
+                <div class="card-body">
+                    <h5 class="card-title text-primary mb-3">➕ Add Consumable Item</h5>
+                    <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="category" value="consumables">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="consumables_customer" class="form-label visually-hidden">Customer</label>
+                                <select name="customer" id="consumables_customer" class="form-select form-customer" required>
+                                    <option value="">Select Customer</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="consumables_item_name" class="form-label visually-hidden">Item Name</label>
+                                <input type="text" name="item_name" id="consumables_item_name" class="form-control" placeholder="Item Name" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="consumables_location" class="form-label visually-hidden">Location</label>
+                                <select name="location" id="consumables_location" class="form-select form-location" required>
+                                    <option value="">Select Location</option>
+                                    {% for loc in locations %}<option value="{{ loc }}">{{ loc }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="consumables_unit_cost" class="form-label visually-hidden">Unit Cost</label>
+                                <input type="number" step="0.01" name="unit_cost" id="consumables_unit_cost" class="form-control" placeholder="Unit Cost" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="consumables_quantity" class="form-label visually-hidden">Quantity</label>
+                                <input type="number" name="quantity" id="consumables_quantity" class="form-control" placeholder="Quantity" required>
+                            </div>
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary w-100 py-2">Add Item</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-primary mb-3">📋 Existing Consumable Items</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Item Name</th>
+                                    <th>Location</th>
+                                    <th>Unit Cost</th>
+                                    <th>Quantity</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in consumables_data %}
+                                <tr>
+                                    <td>item.customer</td>
+                                    <td>{{ item.item_name }}</td>
+                                    <td>{{ item.location }}</td>
+                                    <td>{{ item.unit_cost }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>
+                                        <a href="{{ url_for('delete_entry', category='consumables', index=item.id) }}" class="btn btn-sm btn-danger">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  const fieldsMap = {
+    "kothari_kickers": { "Hyderabad": {}, "Gurgaon": {} },
+    "lifelong": { "Gurgaon": {} },
+    "hike": { "Gurgaon": {} },
+    "eshopbox": { "Hyderabad": {} },
+    "spario": { "Hyderabad": {}, "Gurgaon": {} }
+  };
+
+  const masterCustomerFilter = document.getElementById("masterCustomerFilter");
+  const masterLocationFilter = document.getElementById("masterLocationFilter");
+  const formCustomerSelects = document.querySelectorAll(".form-customer");
+  const formLocationSelects = document.querySelectorAll(".form-location");
+
+  const customerOptions = Object.keys(fieldsMap).map(key => ({value: key, text: key.split('_').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')}));
+
+  function populateSelect(selectElement, options, defaultText) {
+      selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+      options.forEach(opt => { const o = document.createElement("option"); o.value = opt.value; o.textContent = opt.text; selectElement.appendChild(o); });
+  }
+
+  function initCustomerDropdowns() {
+      populateSelect(masterCustomerFilter, customerOptions, 'All Customers');
+      formCustomerSelects.forEach(select => populateSelect(select, customerOptions, 'Select Customer'));
+  }
+
+  function updateLocationDropdowns(customerSelectElement, locationSelectElement) {
+      const cust = customerSelectElement.value;
+      const isFilter = (customerSelectElement.id === 'masterCustomerFilter');
+      if (!cust || !fieldsMap[cust]) {
+          locationSelectElement.innerHTML = `<option value="">${isFilter?'All Locations':'Select Location'}</option>`;
+          return;
+      }
+      let locations = Object.keys(fieldsMap[cust]).map(loc=>({value:loc,text:loc}));
+      if (isFilter) locations.unshift({value:'',text:'All Locations'});
+      populateSelect(locationSelectElement, locations, isFilter?'All Locations':'Select Location');
+  }
+
+  masterCustomerFilter.addEventListener("change", ()=>updateLocationDropdowns(masterCustomerFilter, masterLocationFilter));
+  formCustomerSelects.forEach(custSelect=>{
+      const form = custSelect.closest('form');
+      const locSelect = form.querySelector('.form-location');
+      custSelect.addEventListener("change", ()=>updateLocationDropdowns(custSelect, locSelect));
+  });
+
+  function applyMasterFilter() {
+      const selectedCustomer = masterCustomerFilter.value;
+      const selectedLocation = masterLocationFilter.value;
+      console.log(`Filter: Customer=${selectedCustomer||'All'}, Location=${selectedLocation||'All'}`);
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+      initCustomerDropdowns();
+      updateLocationDropdowns(masterCustomerFilter, masterLocationFilter);
+      formCustomerSelects.forEach(custSelect=>updateLocationDropdowns(custSelect, custSelect.closest('form').querySelector('.form-location')));
+  });
+</script>
+</body>
+</html>

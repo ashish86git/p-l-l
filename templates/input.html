@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Daily Input - Smart Data Form</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #f0eded, #660000);
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      color: #333;
+    }
+    .container {
+      max-width: 1150px;
+      background: #fff;
+      padding: 2rem 2.5rem;
+      border-radius: 1rem;
+      margin-top: 3rem;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    }
+    h2 {
+      font-weight: 700;
+      color: #b30000;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+    }
+    .form-label {
+      font-weight: 600;
+      color: #550000;
+    }
+    .card {
+      border: 1px solid #ffcccc;
+      margin-top: 1.5rem;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(255,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      box-shadow: 0 0 15px rgba(179, 0, 0, 0.25);
+      transform: translateY(-2px);
+    }
+    .card-header {
+      background: linear-gradient(to right, #cc0000, #990000);
+      color: #fff;
+      font-weight: 600;
+      font-size: 1.05rem;
+      padding: 0.75rem 1.25rem;
+    }
+    .input-group-text {
+      background: #ffe6e6;
+      border-color: #ffcccc;
+      color: #800000;
+      font-weight: 500;
+    }
+    .form-control:focus {
+      border-color: #cc0000;
+      box-shadow: 0 0 0 0.2rem rgba(204,0,0,0.25);
+    }
+    button.btn-primary {
+      background: linear-gradient(to right, #cc0000, #800000);
+      border: none;
+      padding: 0.75rem 2.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    }
+    button.btn-primary:hover {
+      background: linear-gradient(to right, #e60000, #a00000);
+      box-shadow: 0 5px 15px rgba(255,0,0,0.35);
+      transform: translateY(-1px);
+    }
+    select.form-select, input.form-control {
+      background-color: #fff;
+      border: 1px solid #ddd;
+    }
+    /* Style for the icon text to align it properly */
+    .input-group-text .bi {
+        font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2 class="text-center mb-4">Daily Input Form</h2>
+  <div class="mt-4 text-center">
+      <a href="{{ url_for('index') }}" class="btn btn-primary">Home</a>
+
+  <form method="POST">
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <label for="date" class="form-label">Date</label>
+        <input type="date" id="date" name="date" class="form-control" value="{{ today }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Customer</label>
+        <select id="customer" name="customer" class="form-select" required>
+          <option value="">Select Customer</option>
+          <option value="kothari_kickers">Kothari & Kickers</option>
+          <option value="lifelong">Lifelong</option>
+          <option value="hike">Hike</option>
+          <option value="eshopbox">Eshopbox</option>
+          <option value="spario">Spario</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Location</label>
+        <select id="location" name="location" class="form-select" required>
+          <option value="">Select Location</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="dynamicFields"></div>
+
+    <div class="mt-4 text-center">
+      <button class="btn btn-primary btn-lg" type="submit">💾 Save Daily Input</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // MODIFIED: Added a 'type' property to Manpower fields to specify count or currency
+  const fieldsMap = {
+    // Kothari & Kickers (Original Data)
+    "kothari_kickers": {
+      "Hyderabad": {
+        "Service Charges - Footwear (Kothari)": [
+          {name:"grn_putaway_pair",label:"GRN (Putaway)/Pair",unit:"Pair"},
+          {name:"gate_pass_pair",label:"Gate Pass/Pair",unit:"Pair"},
+          {name:"ob_b2c_pair",label:"OB-B2C /Pair",unit:"Pair"},
+          {name:"cycle_count_pair",label:"Cycle Count/Pair",unit:"Pair"},
+          {name:"returns",label:"Returns",unit:"Pair"},
+          {name:"claims",label:"Claims",unit:"Pair"}
+        ],
+        "Service Charges - Footwear (Kickers)": [
+          {name:"grn_item",label:"GRN/Item",unit:"Item"},
+          {name:"b2b_ob_item",label:"B2B-OB/Item",unit:"Item"},
+          {name:"b2b_returns_item",label:"B2B-Returns/Item",unit:"Item"},
+          {name:"rtv_item",label:"RTV/Item",unit:"Item"},
+          {name:"b2c_ob_pair",label:"B2C-OB/Pair",unit:"Pair"},
+          {name:"b2c_gate_pass_pair",label:"B2C-Gate Pass/Pair",unit:"Pair"},
+          {name:"b2c_returns",label:"B2C Returns",unit:"Pair"},
+          {name:"b2c_claims",label:"B2C Claims",unit:"Pair"}
+        ],
+        "Service Charges - Apparel (Kickers)": [
+          {name:"grn_apparel",label:"GRN/Item",unit:"Item"},
+          {name:"b2b_ob_apparel",label:"B2B-OB/Item",unit:"Item"},
+          {name:"b2b_returns_apparel",label:"B2B-Returns/Item",unit:"Item"},
+          {name:"rtv_apparel",label:"RTV/Item",unit:"Item"},
+          {name:"b2c_ob_apparel",label:"B2C-OB/Item",unit:"Item"},
+          {name:"b2c_returns_apparel",label:"B2C-Returns/Item",unit:"Item"},
+          {name:"b2c_gate_pass_apparel",label:"B2C-Gate Pass/Pair",unit:"Pair"}
+        ],
+        "Storage": [
+          {name:"storage_footwear",label:"Storage - Footwear"},
+          {name:"storage_apparels",label:"Storage - Apparels"},
+          {name:"storage_accessories",label:"Storage - Accessories"}
+        ],
+        // Manpower Fields with Type
+        "Manpower": [
+          {name:"blue_collar",label:"Blue Collar", type:"count"},
+          {name:"supervisor",label:"Supervisor/Ex-Off roll/Deo", type:"count"},
+          {name:"housekeeping",label:"House Keeping", type:"count"},
+          {name:"security_guard",label:"Security Guard", type:"count"},
+          {name:"electricity",label:"Electricity (₹)", type:"currency"}
+        ],
+        "Consumables": [
+          {name:"roll_100x150",label:"Roll-100x150 (Qty)"},
+          {name:"roll_75x50",label:"Roll-75x50 (Qty)"},
+          {name:"roll_25x50",label:"Roll-25x50 (Qty)"},
+          {name:"a4_paper",label:"A4 Paper (Qty)"},
+          {name:"ribbon_25x50",label:"Ribbon-25x50 (Qty)"}
+        ]
+      },
+      "Gurgaon": {
+        "Service Charges - Footwear (Kickers)": [
+          {name:"grn_item",label:"GRN/Item"},
+          {name:"b2b_ob_item",label:"B2B-OB/Item"},
+          {name:"b2b_returns_item",label:"B2B-Returns/Item"},
+          {name:"rtv_item",label:"RTV/Item"},
+          {name:"b2c_ob_pair",label:"B2C-OB-B2C/Pair"},
+          {name:"b2c_gate_pass_pair",label:"B2C-Gate Pass/Pair"},
+          {name:"b2c_returns",label:"B2C Returns"},
+          {name:"b2c_claims",label:"B2C-Claims"}
+        ],
+        "Service Charges - Apparel (Kickers)": [
+          {name:"grn_apparel",label:"GRN/Item"},
+          {name:"b2b_ob_apparel",label:"B2B-OB/Item"},
+          {name:"b2b_returns_apparel",label:"B2B-Returns/Item"},
+          {name:"rtv_apparel",label:"RTV/Item"},
+          {name:"b2c_ob_apparel",label:"B2C-OB/Item"},
+          {name:"b2c_returns_apparel",label:"B2C-Returns/Item"},
+          {name:"b2c_gate_pass_apparel",label:"B2C-Gate Pass/Pair"},
+          {name:"rtv_apparel_2",label:"RTV/Item"}
+        ],
+        "Accessories (Kickers)": [
+          {name:"grn_accessory",label:"GRN/Item"},
+          {name:"b2b_ob_accessory",label:"B2B-OB/Item"},
+          {name:"b2b_returns_accessory",label:"B2B-Returns/Item"},
+          {name:"b2c_ob_accessory",label:"B2C-OB/Item"},
+          {name:"b2c_returns_accessory",label:"B2C-Returns/Item"},
+          {name:"rtv_accessory",label:"RTV/Item"}
+        ],
+        "Footwear (Kothari)": [
+          {name:"inward_rate_item",label:"Inward Rate/Item"},
+          {name:"rgp_return",label:"RGP-Return"},
+          {name:"gate_pass_item",label:"Gate Pass/Item/STN"},
+          {name:"b2c_outward_item",label:"B2C Outward Rate/Item"},
+          {name:"cycle_count_item",label:"Cycle Count Rate/Item"},
+          {name:"rto_rate_item",label:"RTO Rate/Item"},
+          {name:"claim_rate_item",label:"Claim Rate/Item"}
+        ],
+        "Storage": [
+          {name:"storage_kickers_footwear",label:"Storage (Kickers) - Footwear"},
+          {name:"storage_kickers_apparels",label:"Storage (Kickers) - Apparels"},
+          {name:"storage_kickers_accessories",label:"Storage (Kickers) - Accessories"},
+          {name:"storage_kothari_footwear",label:"Storage (Kothari) - Footwear"}
+        ],
+        "Throughput Numbers": [
+          {name:"order_qty_total",label:"Order Qty - B2B + B2C + RTV"}
+        ],
+        // Manpower Fields with Type
+        "Manpower": [
+          {name:"blue_collar_rk",label:"Blue Collar (R.K)", type:"count"},
+          {name:"blue_collar_kbr",label:"Blue Collar (KBR)", type:"count"},
+          {name:"blue_collar_drona",label:"Blue Collar (Drona Value Chain)", type:"count"},
+          {name:"loading_jeevdhani",label:"Loading & Unloading (Jeevdhani)", type:"count"},
+          {name:"loading_kbr",label:"Loading & Unloading (KBR)", type:"count"},
+          {name:"supervisor_deo",label:"Supervisor/Ex-Off Roll/DEO", type:"count"},
+          {name:"jatin",label:"Jatin", type:"count"},
+          {name:"krishan",label:"Krishan", type:"count"},
+          {name:"gaurav_kumar",label:"Gaurav Kumar", type:"count"},
+          {name:"ajay_kumar",label:"Ajay Kumar", type:"count"},
+          {name:"neeraj",label:"Neeraj", type:"count"},
+          {name:"ravi_kant",label:"Ravi Kant", type:"count"},
+          {name:"rajender",label:"Rajender", type:"count"},
+          {name:"mohit",label:"Mohit", type:"count"}
+        ],
+        "WMS Charges": [
+          {name:"adhoc_manpower",label:"Adhoc Manpower"},
+          {name:"housekeeping",label:"House Keeping"},
+          {name:"security_guard_female",label:"Security Guard Female"},
+          {name:"security_guard",label:"Security Guard"},
+          {name:"security_supervisor",label:"Security Supervisor"},
+          {name:"tea",label:"Tea"},
+          {name:"water",label:"Water"},
+          {name:"stationery",label:"Stationery"},
+          {name:"electricity",label:"Electricity"},
+          {name:"electricity_sub_meter",label:"Electricity - Sub Meter"},
+          {name:"diesel",label:"Diesel"},
+          {name:"staff_welfare",label:"Staff Welfare"},
+          {name:"convence",label:"Convence"},
+          {name:"ho_cost",label:"HO Cost"},
+          {name:"traveling_cost",label:"Traveling Cost"},
+          {name:"hra",label:"HRA"},
+          {name:"capex",label:"Capex"},
+          {name:"hk_materials",label:"HK - Materials"},
+          {name:"other_expenses",label:"Other Expenses"},
+          {name:"rr_cost",label:"R & R Cost"},
+          {name:"rental",label:"Rental"}
+        ],
+        "Consumables": [
+          {name:"roll_100x150",label:"Roll-100x150 (No of Orders × 2)"},
+          {name:"roll_75x50",label:"Roll-75x50"},
+          {name:"roll_25x50",label:"Roll-25x50"},
+          {name:"a4_paper",label:"A4 Size Paper"},
+          {name:"ribbon_25x50",label:"Ribbon-25x50"}
+        ]
+      }
+    },
+    // Lifelong (Original Data)
+    "lifelong": {
+      "Gurgaon": {
+        "CBM Model": [
+          {name:"outbound_cbm",label:"Outbound/CBM"},
+          {name:"storage_day_cbm",label:"Storage/Day/CBM"}
+        ],
+        // Manpower Fields with Type
+        "Manpower": [
+          {name:"blue_collar",label:"Blue Collar (Attendance)", type:"count"},
+          {name:"loading_unloading",label:"Loading & Unloading", type:"count"},
+          {name:"overtime_supervisor",label:"Over Time - Supervisor/Hr", type:"count"},
+          {name:"overtime_blue_collar",label:"Over Time - Blue Collar/Hr", type:"count"},
+          {name:"electrition",label:"Electrition", type:"count"}
+        ],
+        "Operational Costs": [
+          {name:"house_keeping",label:"House Keeping"},
+          {name:"security_guard",label:"Security Guard"},
+          {name:"security_supervisor",label:"Security Supervisor"},
+          {name:"tea",label:"Tea"},
+          {name:"water",label:"Water"},
+          {name:"stationery",label:"Stationery"},
+          {name:"electricity",label:"Electricity"},
+          {name:"diesel",label:"Diesel"},
+          {name:"staff_welfare",label:"Staff Welfare"},
+          {name:"convence",label:"Convence"},
+          {name:"ho_cost",label:"HO Cost"},
+          {name:"traveling_cost",label:"Traveling Cost"},
+          {name:"hra",label:"HRA"},
+          {name:"capex",label:"Capex"},
+          {name:"hk_materials",label:"HK - Materials"},
+          {name:"other_expenses",label:"Other Expenses"},
+          {name:"rr_cost",label:"R & R Cost"},
+          {name:"rental",label:"Rental"}
+        ],
+        "Consumables": [
+          {name:"roll_100x150",label:"Roll-100x150"},
+          {name:"roll_75x50",label:"Roll-75x50"},
+          {name:"roll_25x50",label:"Roll-25x50"},
+          {name:"a4_paper",label:"A4 Size Paper"},
+          {name:"pen_pencil",label:"Pen/Pencil"},
+          {name:"cartridge",label:"Cartridge"},
+          {name:"bubble_wrap",label:"Bubble Wrap"},
+          {name:"stretch_wrap",label:"Stretch Wrap"}
+        ]
+      }
+    },
+    // Hike Customer (New Data)
+    "hike": {
+      "Gurgaon": {
+        "Variable Revenue": [
+          {name:"grn_putaway_pair",label:"GRN (Putaway)/Pair",unit:"Pair"},
+          {name:"gate_pass_pair",label:"Gate Pass/Pair",unit:"Pair"},
+          {name:"ob_b2c_pair",label:"OB-B2C /Pair",unit:"Pair"},
+          {name:"cycle_count_pair",label:"Cycle Count/Pair",unit:"Pair"},
+          {name:"returns",label:"Returns",unit:"Pair"},
+          {name:"claims",label:"Claims",unit:"Pair"}
+        ],
+        "Storage": [
+          {name:"storage_footwear",label:"Footwear"},
+          {name:"storage_apparels",label:"Apparels"},
+          {name:"storage_accessories",label:"Accessories"}
+        ],
+        // Manpower Fields with Type
+        "Manpower": [
+          {name:"blue_collar_bc",label:"Blue Collar (BC)", type:"count"},
+          {name:"housekeeping_hk",label:"House Keeping (HK)", type:"count"},
+          {name:"security_guard_sec",label:"Security (Security)", type:"count"},
+          {name:"picker_packer_kbr",label:"Picker Packer (KBR)", type:"count"},
+          {name:"picker_packer_rk",label:"Picker Packer(RK)", type:"count"},
+          {name:"picker_packer_drona",label:"Picker Packer (Drona Value Chain)", type:"count"},
+          {name:"loading_unloading_kbr",label:"Loading & Unloading(KBR)", type:"count"},
+          {name:"loading_unloading_rk",label:"Loading & Unloading(RK)", type:"count"},
+          {name:"supervisor_deo",label:"Supervisor/Ex- Off roll/Deo", type:"count"},
+          {name:"surya_pratap",label:"Surya Pratap", type:"count"},
+          {name:"rajinder_negi",label:"Rajinder Negi", type:"count"}
+        ],
+        "Overtime": [
+          {name:"overtime_bc_picker",label:"Overtime- Blue Collars( Picker Packer)/Hr"},
+          {name:"overtime_bc_lu",label:"Overtime- Blue Collars(Loading & Unloading)/Hr"}
+        ],
+        "WMS Charges": [
+          {name:"adhoc_manpower",label:"Adhoc Manpower"},
+          {name:"house_keeping_wms",label:"House Keeping"},
+          {name:"security_guard_female",label:"Security Guard Female"},
+          {name:"security_guard_wms",label:"Security Guard"},
+          {name:"security_supervisor",label:"Security Supervisor"},
+          {name:"tea",label:"Tea"},
+          {name:"water",label:"Water"},
+          {name:"stationery",label:"Stationery"},
+          {name:"electricity",label:"Electricity"},
+          {name:"electricity_sub_meter",label:"Electricity- Sub meter"},
+          {name:"diesel",label:"Diesel"},
+          {name:"staff_welfare",label:"Staff Welfare"},
+          {name:"convence",label:"Convence"},
+          {name:"ho_cost",label:"HO Cost"},
+          {name:"traveling_cost",label:"Traveling Cost"},
+          {name:"hra",label:"HRA"},
+          {name:"capex",label:"Capex"},
+          {name:"hk_materials",label:"HK- Materials"},
+          {name:"other_expenses",label:"Other Expenses"},
+          {name:"rr_cost",label:"R & R Cost"},
+          {name:"rental",label:"Rental"}
+        ],
+        "Consumables": [
+          {name:"roll_100x150",label:"Roll-100 x 150 ( No of Orders X 2)"},
+          {name:"roll_75x50",label:"Roll-75 x 50"},
+          {name:"roll_25x50",label:"Roll-25 x 50"},
+          {name:"a4_paper",label:"A4 Size Paper"},
+          {name:"ribbon_25x50",label:"Ribbon-25 x 50"}
+        ]
+      }
+    },
+    // Eshopbox Customer (New Data)
+    "eshopbox": {
+      "Hyderabad": {
+        "Production Numbers - Fashion": [
+          {name:"grn_fashion",label:"GRN"},
+          {name:"cycle_count_fashion",label:"Cycle Count"},
+          {name:"ob_b2c_one_unit_fashion",label:"OB-B2C for one unit"},
+          {name:"ob_b2c_multi_unit_fashion",label:"OB-B2C >1 unit"},
+          {name:"ob_b2b_fashion",label:"OB-B2B"},
+          {name:"returns_fashion",label:"Returns"},
+          {name:"gp_rtv_fashion",label:"GP/RTV"},
+          {name:"claims_fashion",label:"Claims"},
+          {name:"tag_loop_fashion",label:"Tag loop"},
+          {name:"wdl_fashion",label:"WDL"},
+          {name:"outward_vms_fashion",label:"Outward VMS"},
+          {name:"outward_v_measure_fashion",label:"Outward V-Measure"},
+          {name:"stn_putaway_fashion",label:"STN/Direct Putaway ( For All cumodity)"}
+        ],
+        "Production Numbers - Cosmetics/FMCG": [
+          {name:"grn_cosmetics",label:"GRN"},
+          {name:"cycle_count_cosmetics",label:"Cycle Count"},
+          {name:"ob_b2c_one_unit_cosmetics",label:"OB-B2C for one unit"},
+          {name:"ob_b2c_multi_unit_cosmetics",label:"OB-B2C >1 unit"},
+          {name:"ob_b2b_cosmetics",label:"OB-B2B"},
+          {name:"returns_cosmetics",label:"Returns"},
+          {name:"gp_rtv_cosmetics",label:"GP/RTV"},
+          {name:"claims_cosmetics",label:"Claims"},
+          {name:"tag_loop_cosmetics",label:"Tag loop"},
+          {name:"wdl_cosmetics",label:"WDL"},
+          {name:"outward_vms_cosmetics",label:"Outward VMS"},
+          {name:"outward_v_measure_cosmetics",label:"Outward V-Measure"},
+          {name:"stn_putaway_cosmetics",label:"STN/Direct Putaway ( For All cumodity)"}
+        ],
+        "Production Numbers - Home": [
+          {name:"grn_home",label:"GRN"},
+          {name:"cycle_count_home",label:"Cycle Count"},
+          {name:"ob_b2c_one_unit_home",label:"OB-B2C for one unit"},
+          {name:"ob_b2c_multi_unit_home",label:"OB-B2C >1 unit"},
+          {name:"ob_b2b_home",label:"OB-B2B"},
+          {name:"returns_home",label:"Returns"},
+          {name:"gp_rtv_home",label:"GP/RTV"},
+          {name:"claims_home",label:"Claims"},
+          {name:"tag_loop_home",label:"Tag loop"},
+          {name:"wdl_home",label:"WDL"},
+          {name:"outward_vms_home",label:"Outward VMS"},
+          {name:"outward_v_measure_home",label:"Outward V-Measure"},
+          {name:"stn_putaway_home",label:"STN/Direct Putaway ( For All cumodity)"}
+        ],
+        "Throughput Numbers": [
+          {name:"order_qty_total",label:"Order Qty- B2B + B2C+RTV"}
+        ],
+        "Storage": [
+          {name:"storage_apparel",label:"Apparel"},
+          {name:"storage_footwear",label:"Footwear"},
+          // Home Furnishing storage (truncated for brevity, using general names for unique keys)
+          {name:"storage_hf_general",label:"Home Furnishing (General)"},
+          {name:"storage_hf_lt2kg",label:"Home Furnishing < 2Kg"},
+          {name:"storage_hf_3kg",label:"Home Furnishing 3Kg"},
+          {name:"storage_hf_4kg",label:"Home Furnishing 4Kg"},
+          {name:"storage_hf_5kg",label:"Home Furnishing 5Kg"},
+          {name:"storage_hf_6kg",label:"Home Furnishing 6Kg"},
+          {name:"storage_hf_7kg",label:"Home Furnishing 7Kg"},
+          {name:"storage_hf_8kg",label:"Home Furnishing 8Kg"},
+          {name:"storage_hf_9kg",label:"Home Furnishing 9Kg"},
+          {name:"storage_hf_10kg",label:"Home Furnishing 10Kg"},
+          {name:"storage_hf_11kg",label:"Home Furnishing 11Kg"},
+          {name:"storage_hf_12kg",label:"Home Furnishing 12Kg"},
+          {name:"storage_hf_13kg",label:"Home Furnishing 13Kg"},
+          {name:"storage_hf_14kg",label:"Home Furnishing 14Kg"},
+          {name:"storage_hf_15kg",label:"Home Furnishing 15Kg"},
+          {name:"storage_hf_16kg",label:"Home Furnishing 16Kg"},
+          {name:"storage_hf_17kg",label:"Home Furnishing 17Kg"},
+          {name:"storage_hf_18kg",label:"Home Furnishing 18Kg"},
+          {name:"storage_hf_19kg",label:"Home Furnishing 19Kg"},
+          {name:"storage_hf_20kg",label:"Home Furnishing 20Kg"},
+          {name:"storage_hf_21kg",label:"Home Furnishing 21Kg"},
+          {name:"storage_hf_22kg",label:"Home Furnishing 22Kg"},
+          {name:"storage_hf_23kg",label:"Home Furnishing 23Kg"},
+          {name:"storage_hf_34kg",label:"Home Furnishing 34Kg"},
+          {name:"storage_hf_40kg",label:"Home Furnishing 40Kg"},
+          // Cosmetics/Health & Beauty storage (truncated for brevity, using general names for unique keys)
+          {name:"storage_cos_hb_general",label:"Cosmetics/Health & Beauty (General)"},
+          {name:"storage_cos_hb_lt2kg",label:"Cosmetics/Health & Beauty < 2Kg"},
+          {name:"storage_cos_hb_3kg",label:"Cosmetics/Health & Beauty 3Kg"},
+          {name:"storage_cos_hb_4kg",label:"Cosmetics/Health & Beauty 4Kg"},
+          {name:"storage_cos_hb_5kg",label:"Cosmetics/Health & Beauty 5Kg"},
+          {name:"storage_cos_hb_6kg",label:"Cosmetics/Health & Beauty 6Kg"},
+          {name:"storage_cos_hb_7kg",label:"Cosmetics/Health & Beauty 7Kg"},
+          {name:"storage_cos_hb_10kg",label:"Cosmetics/Health & Beauty 10Kg"}
+        ],
+        // Manpower Fields with Type
+        "Manpower": [
+          {name:"blue_collar",label:"Blue Collar", type:"count"},
+          {name:"loading_unloading",label:"Loading & Unloading", type:"count"},
+          {name:"supervisor_ex_off_roll",label:"Supervisor/Ex- Off roll", type:"count"},
+          {name:"avinash",label:"Avinash", type:"count"},
+          {name:"ravi",label:"Ravi", type:"count"}
+        ],
+        "WMS Charges": [
+          {name:"adhoc_manpower",label:"Adhoc Manpower"},
+          {name:"house_keeping",label:"House Keeping"},
+          {name:"security_guard_female",label:"Security Guard Female"},
+          {name:"security_guard",label:"Security Guard"},
+          {name:"security_supervisor",label:"Security Supervisor"},
+          {name:"tea",label:"Tea"},
+          {name:"water",label:"Water"},
+          {name:"stationery",label:"Stationery"},
+          {name:"electricity",label:"Electricity"},
+          {name:"electricity_sub_meter",label:"Electricity- Sub meter"},
+          {name:"diesel",label:"Diesel"},
+          {name:"staff_welfare",label:"Staff Welfare"},
+          {name:"convence",label:"Convence"},
+          {name:"ho_cost",label:"HO Cost"},
+          {name:"traveling_cost",label:"Traveling Cost"},
+          {name:"hra",label:"HRA"},
+          {name:"capex",label:"Capex"},
+          {name:"hk_materials",label:"HK- Materials"},
+          {name:"internet_charges",label:"Internet Charges"},
+          {name:"rr_cost",label:"R & R Cost"},
+          {name:"rental",label:"Rental"}
+        ],
+        "Consumables": [
+          {name:"roll_100x150",label:"Roll-100 x 150 ( No of Orders X 2)"},
+          {name:"roll_75x50",label:"Roll-75 x 50"},
+          {name:"roll_25x50",label:"Roll-25 x 50"},
+          {name:"a4_paper",label:"A4 Size Paper"},
+          {name:"ribbon_25x50",label:"Ribbon-25 x 50"}
+        ]
+      }
+    },
+    // Spario Customer (New Data)
+    "spario": {
+      "Hyderabad": {
+        "Service Charges - Open Footwear": [
+          {name:"b2c_out_35k_50k",label:"Out- B2C/Pair (35K-50K Per Month)"},
+          {name:"b2c_out_50k_75k",label:"Out- B2C/Pair (50K-75K Per Month)"},
+          {name:"b2c_out_75k_1lac",label:"Out- B2C/Pair (75K-1Lacs Per Month)"},
+          {name:"b2b_item_outbound_pair",label:"B2B Item Outbound/Pair"}
+        ],
+        "Throughput Numbers": [
+          {name:"order_qty_total",label:"Order Qty- B2B + B2C+RTV"}
+        ],
+        "Storage": [
+          {name:"storage_open_footwear",label:"Open Footwear/Pair"}
+        ],
+        // Manpower Fields with Type
+        "Manpower": [
+          {name:"blue_collar",label:"Blue Collar", type:"count"},
+          {name:"loading_unloading",label:"Loading & Unloading", type:"count"},
+          {name:"supervisor_ex_off_roll_deo",label:"Supervisor/Ex- Off roll/Deo", type:"count"}
+        ],
+        "Other Charges/Attendance": [
+          {name:"adhoc_manpower",label:"Adhoc Manpower"},
+          {name:"house_keeping",label:"House Keeping"},
+          {name:"security_guard_female",label:"Security Guard Female"},
+          {name:"security_guard",label:"Security Guard"},
+          {name:"security_supervisor",label:"Security Supervisor"},
+          {name:"tea",label:"Tea"},
+          {name:"water",label:"Water"},
+          {name:"stationery",label:"Stationery"},
+          {name:"electricity",label:"Electricity"},
+          {name:"electricity_sub_meter",label:"Electricity- Sub meter"},
+          {name:"diesel",label:"Diesel"},
+          {name:"staff_welfare",label:"Staff Welfare"},
+          {name:"convence",label:"Convence"},
+          {name:"ho_cost",label:"HO Cost"},
+          {name:"traveling_cost",label:"Traveling Cost"},
+          {name:"hra",label:"HRA"},
+          {name:"capex",label:"Capex"},
+          {name:"hk_materials",label:"HK- Materials"},
+          {name:"other_expenses",label:"Other Expenses"},
+          {name:"rr_cost",label:"R & R Cost"},
+          {name:"rental",label:"Rental"}
+        ],
+        "Consumables": [
+          {name:"roll_100x150",label:"Roll-100 x 150 ( No of Orders X 2)"},
+          {name:"roll_75x50",label:"Roll-75 x 50"},
+          {name:"roll_25x50",label:"Roll-25 x 50"},
+          {name:"a4_paper",label:"A4 Size Paper"},
+          {name:"ribbon_25x50",label:"Ribbon-25 x 50"}
+        ]
+      },
+      "Gurgaon": {
+        "Box in Box Out- Model": [
+          {name:"inbound_box",label:"Inbound/Box"},
+          {name:"outbound_box",label:"Outbound/Box"},
+          {name:"transport_cost_box",label:"Trasnport cost/ Box"},
+          {name:"unloading_charges_box",label:"Unloading Charges/Box"}
+        ],
+        "Storage - Box in Box Out": [
+          {name:"storage_day_box_lt4k",label:"Storage/Day/Box up to 4000 Boxes"},
+          {name:"storage_day_box_4k_10k",label:"Storage/Day/Box - 4000-10000 Boxes"},
+          {name:"storage_day_box_gt10k",label:"Storage/Day/Box - >10000 Boxes"}
+        ],
+        "Pair In Pair Out Model": [
+          {name:"outbound_pair",label:"Outbound/Pair"},
+          {name:"local_transport_actual",label:"Local Transportation As actual (Amount)"},
+          {name:"return_transport_actual",label:"Return Transportation As actual(Amount)"},
+          {name:"transport_cost_box_pip",label:"Trasnport cost/ Box"},
+          {name:"unloading_charges_box_pip",label:"Unloading Charges/Box"}
+        ],
+        "Throughput Numbers": [
+          {name:"order_qty_total",label:"Order Qty- B2B + B2C+RTV"}
+        ],
+        // Manpower Fields with Type
+        "Manpower": [
+          {name:"blue_collar_rk",label:"Blue Collar(R.K)", type:"count"},
+          {name:"blue_collar_kbr",label:"Blue Collar(KBR)", type:"count"},
+          {name:"blue_collar_drona",label:"Blue Collar(Drona Value Chain)", type:"count"},
+          {name:"loading_unloading_dev",label:"Loading & Unloading(Dev Entp)", type:"count"},
+          {name:"loading_unloading_kbr",label:"Loading & Unloading(KBR)", type:"count"},
+          {name:"loading_unloading_drona",label:"Loading & Unloading(Drona Value Chain)", type:"count"},
+          {name:"supervisor_team_lead",label:"Supervisor/Team Lead", type:"count"},
+          {name:"prabhat_pandey",label:"PRABHAT PANDEY", type:"count"},
+          {name:"surya_pratap_singh",label:"Surya Pratap Singh", type:"count"},
+          {name:"ranjeet",label:"Ranjeet", type:"count"},
+          {name:"iftekhan",label:"Iftekhan", type:"count"},
+          {name:"bhupender",label:"BHUPENDER", type:"count"},
+          {name:"jogender_singh",label:"Jogender Singh", type:"count"},
+          {name:"pardeep_sharma",label:"Pardeep Sharma", type:"count"},
+          {name:"rakesh_kumar",label:"Rakesh Kumar", type:"count"},
+          {name:"mukesh_kumar",label:"Mukesh Kumar", type:"count"},
+          {name:"nar_singh",label:"NAR SINGH", type:"count"},
+          {name:"ravi_kant",label:"Ravi Kant", type:"count"}
+        ],
+        "Other Charges/Attendance": [
+          {name:"adhoc_manpower",label:"Adhoc Manpower"},
+          {name:"house_keeping",label:"House Keeping"},
+          {name:"security_guard_female",label:"Security Guard Female"},
+          {name:"security_guard",label:"Security Guard"},
+          {name:"security_supervisor",label:"Security Supervisor"},
+          {name:"tea",label:"Tea"},
+          {name:"water",label:"Water"},
+          {name:"stationery",label:"Stationery"},
+          {name:"electricity",label:"Electricity"},
+          {name:"electricity_sub_meter",label:"Electricity- Sub meter"},
+          {name:"diesel",label:"Diesel"},
+          {name:"staff_welfare",label:"Staff Welfare"},
+          {name:"convence",label:"Convence"},
+          {name:"ho_cost",label:"HO Cost"},
+          {name:"traveling_cost",label:"Traveling Cost"},
+          {name:"hra",label:"HRA"},
+          {name:"capex",label:"Capex"},
+          {name:"hk_materials",label:"HK- Materials"},
+          {name:"other_expenses",label:"Other Expenses"},
+          {name:"rr_cost",label:"R & R Cost"},
+          {name:"rental",label:"Rental"}
+        ],
+        "Consumables": [
+          {name:"roll_100x150",label:"Roll-100 x 150 ( No of Orders X 2)"},
+          {name:"roll_75x50",label:"Roll-75 x 50"},
+          {name:"roll_25x50",label:"Roll-25 x 50"},
+          {name:"a4_paper",label:"A4 Size Paper"},
+          {name:"ribbon_25x50",label:"Ribbon-25 x 50"}
+        ]
+      }
+    }
+  };
+
+  const customerSelect = document.getElementById("customer");
+  const locationSelect = document.getElementById("location");
+  const dynamicFields = document.getElementById("dynamicFields");
+
+  // Load locations dynamically
+  customerSelect.addEventListener("change", function() {
+    const cust = this.value;
+    locationSelect.innerHTML = '<option value="">Select Location</option>';
+    if (cust && fieldsMap[cust]) {
+      Object.keys(fieldsMap[cust]).forEach(loc => {
+        const opt = document.createElement("option");
+        opt.value = loc;
+        opt.textContent = loc;
+        locationSelect.appendChild(opt);
+      });
+    }
+    dynamicFields.innerHTML = ""; // Clear dynamic fields on customer change
+  });
+
+  // Load field groups dynamically
+  locationSelect.addEventListener("change", function() {
+    const cust = customerSelect.value;
+    const loc = this.value;
+    dynamicFields.innerHTML = ""; // Clear dynamic fields on location change
+    if (cust && loc && fieldsMap[cust][loc]) {
+      const groups = fieldsMap[cust][loc];
+      Object.keys(groups).forEach(sectionName => {
+        const section = document.createElement("div");
+        section.className = "card";
+        const header = `<div class="card-header">${sectionName}</div>`;
+        let body = `<div class="card-body row">`;
+        groups[sectionName].forEach(f => {
+          let unitHtml = '';
+          // Check for 'unit' first (for Service Charges/CBM), then check for 'type' (for Manpower)
+          if (f.unit) {
+             unitHtml = `<span class="input-group-text">${f.unit}</span>`;
+          } else if (sectionName === "Manpower" || f.type) {
+            // Logic for Manpower/Other fields where 'type' determines the icon
+            let iconClass = '';
+            if (f.type === 'currency') {
+              iconClass = 'bi-currency-rupee'; // Rupee icon
+            } else {
+              iconClass = 'bi-hash'; // Hash/Count icon (default for Manpower if not currency)
+            }
+            unitHtml = `<span class="input-group-text"><i class="bi ${iconClass}"></i></span>`;
+          }
+
+
+          body += `
+            <div class="col-md-4 mb-3">
+              <label class="form-label">${f.label}</label>
+              <div class="input-group">
+                <input type="number" step="0.01" name="${f.name}" class="form-control" placeholder="Enter value">
+                ${unitHtml}
+              </div>
+            </div>`;
+        });
+        body += `</div>`;
+        section.innerHTML = header + body;
+        dynamicFields.appendChild(section);
+      });
+    }
+  });
+</script>
+<script>
+  // Show alert on form submit
+const form = document.querySelector("form");
+form.addEventListener("submit", function(e) {
+    // Small delay to let form actually submit
+    setTimeout(() => {
+        alert("✅ Daily input successfully submitted!");
+    }, 100);
+});
+
+</script>
+</body>
+</html>

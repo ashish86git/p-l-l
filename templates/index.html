@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Intelligence - P&L Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        /* --- Color Palette & Variables --- */
+        :root {
+            --primary-red: #B30000; /* Rich Financial Red */
+            --secondary-maroon: #8B0000; /* Deep Maroon for accents */
+            --light-bg: #f5f5f5; /* Light Gray/Off-white for a clean look */
+            --card-bg: #ffffff;
+            --dark-text: #2c3e50;
+        }
+
+        /* --- General Body Styling --- */
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        /* --- Navbar Styling --- */
+        .navbar {
+            background-color: var(--secondary-maroon) !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.6rem;
+            letter-spacing: 1.5px;
+            color: #fff !important;
+        }
+        .nav-link {
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8) !important;
+            transition: color 0.3s ease, background-color 0.3s ease;
+            border-radius: 0.375rem;
+        }
+        .nav-link:hover, .nav-link:focus {
+            color: #fff !important;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* --- Main Header Styling --- */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-red), var(--secondary-maroon));
+            color: #fff;
+            padding: 3rem;
+            margin-bottom: 3rem !important;
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            text-align: left;
+        }
+        .page-header h1 {
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+        .page-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+
+        /* --- Card Styling (Data Blocks) --- */
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background: var(--card-bg);
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--primary-red);
+        }
+        .card-body {
+            padding: 2rem 1.5rem;
+        }
+        .card-title {
+            color: var(--dark-text);
+            font-weight: 700;
+            font-size: 1.35rem;
+            margin-bottom: 1rem;
+        }
+        .card-text {
+            color: #6c757d;
+            font-size: 0.95rem;
+            min-height: 40px;
+        }
+
+        /* --- Icon Styling (Focus on Financial Icons) --- */
+        .card-icon {
+            font-size: 2.5rem;
+            color: var(--primary-red);
+            margin-bottom: 1rem;
+            display: block;
+            background-color: #fce7e7; /* Light background for the icon */
+            width: 60px;
+            height: 60px;
+            line-height: 60px;
+            border-radius: 50%;
+            text-align: center;
+        }
+
+        /* --- Button Styling --- */
+        .btn-primary {
+            background-color: var(--primary-red);
+            border-color: var(--primary-red);
+            font-weight: 600;
+            padding: 0.6rem 1.8rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 10px rgba(179, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: var(--secondary-maroon);
+            border-color: var(--secondary-maroon);
+            box-shadow: 0 6px 15px rgba(139, 0, 0, 0.4);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="#">P&L ANALYTICS</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('master') }}"><i class="bi bi-database me-2"></i>Master Data</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('daily_input') }}"><i class="bi bi-currency-dollar me-2"></i>Daily Revenue</a></li>
+                <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{ url_for('summary') }}"><i class="bi bi-clipboard-data me-2"></i>**P&L Dashboard**</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('config') }}"><i class="bi bi-gear me-2"></i>Settings</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <div class="page-header">
+        <h1 class="fw-bold">Profit & Loss Intelligence Center</h1>
+        <p>Real-time financial visibility and management for all warehouse operations.</p>
+    </div>
+
+    <div class="row justify-content-center g-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-lg text-center h-100">
+                <div class="card-body">
+                    <i class="bi bi-cash-stack card-icon"></i>
+                    <h5 class="card-title">Rate & Cost Setup</h5>
+                    <p class="card-text">Set and manage the base rates for services, manpower, and operational expenses.</p>
+                    <a href="{{ url_for('master') }}" class="btn btn-primary">Manage Rates</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-lg text-center h-100">
+                <div class="card-body">
+                    <i class="bi bi-calculator card-icon"></i>
+                    <h5 class="card-title">Daily Financial Input</h5>
+                    <p class="card-text">Input daily operational throughput and associated variable/fixed costs for P&L calculation.</p>
+                    <a href="{{ url_for('daily_input') }}" class="btn btn-primary">Enter Data</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-lg text-center h-100">
+                <div class="card-body">
+                    <i class="bi bi-file-bar-graph card-icon"></i>
+                    <h5 class="card-title">Financial Reports (P&L)</h5>
+                    <p class="card-text">View the core Profit & Loss statement, track margins, and analyze variance reports by date.</p>
+                    <a href="{{ url_for('summary') }}" class="btn btn-primary">View P&L</a>
+                </div>
+            </div>
+        </div>
+
+<!--        <div class="col-lg-3 col-md-6">-->
+<!--            <div class="card shadow-lg text-center h-100">-->
+<!--                <div class="card-body">-->
+<!--                    <i class="bi bi-calendar-check card-icon"></i>-->
+<!--                    <h5 class="card-title">Period Management</h5>-->
+<!--                    <p class="card-text">Define and close financial periods, and manage month-end or quarter-end processes.</p>-->
+<!--                    <a href="{{ url_for('config') }}" class="btn btn-primary">Go to Setup</a>-->
+<!--                </div>-->
+<!--            </div>-->
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
