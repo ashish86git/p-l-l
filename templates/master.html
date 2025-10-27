@@ -249,10 +249,12 @@
                                     <option value="">Select Customer</option>
                                 </select>
                             </div>
+
                             <div class="col-md-3">
                                 <label for="operational_cost_type" class="form-label visually-hidden">Cost Type</label>
                                 <input type="text" name="cost_type" id="operational_cost_type" class="form-control" placeholder="Cost Type" required>
                             </div>
+
                             <div class="col-md-3">
                                 <label for="operational_location" class="form-label visually-hidden">Location</label>
                                 <select name="location" id="operational_location" class="form-select form-location" required>
@@ -260,10 +262,22 @@
                                     {% for loc in locations %}<option value="{{ loc }}">{{ loc }}</option>{% endfor %}
                                 </select>
                             </div>
+
                             <div class="col-md-3">
                                 <label for="operational_daily_cost" class="form-label visually-hidden">Daily Cost</label>
                                 <input type="number" step="0.01" name="daily_cost" id="operational_daily_cost" class="form-control" placeholder="Daily Cost" required>
                             </div>
+
+                            <!-- 👇 Type dropdown -->
+                            <div class="col-md-3">
+                                <label for="operational_type" class="form-label visually-hidden">Type</label>
+                                <select name="type" id="operational_type" class="form-select">
+                                    <option value="">Select Type</option>
+                                    <option value="Cost">Cost</option>
+                                    <option value="Revenue">Revenue</option>
+                                </select>
+                            </div>
+
                             <div class="col-12 mt-4">
                                 <button type="submit" class="btn btn-primary w-100 py-2">Add Cost</button>
                             </div>
@@ -283,6 +297,7 @@
                                     <th>Cost Type</th>
                                     <th>Location</th>
                                     <th>Daily Cost</th>
+                                    <th>Type</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -293,6 +308,7 @@
                                     <td>{{ op.cost_type }}</td>
                                     <td>{{ op.location }}</td>
                                     <td>{{ op.daily_cost }}</td>
+                                    <td>{{ op.type_  }}</td>
                                     <td>
                                         <a href="{{ url_for('delete_entry', category='operational', index=op.id) }}" class="btn btn-sm btn-danger">Delete</a>
                                     </td>
@@ -304,6 +320,7 @@
                 </div>
             </div>
         </div>
+
 
         <div class="tab-pane fade" id="consumables" role="tabpanel" aria-labelledby="consumables-tab">
             <div class="card mb-5">
