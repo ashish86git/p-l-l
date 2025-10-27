@@ -71,6 +71,7 @@ class MasterOperational(db.Model):
     cost_type = db.Column(db.String(255), nullable=False)
     location = db.Column(db.String(255), nullable=False)
     daily_cost = db.Column(db.Float, default=0)
+    type_ = db.Column("type", db.String(100), nullable=True)
 
 
 class MasterConsumables(db.Model):
@@ -256,17 +257,31 @@ def master():
                 db.session.add(entry)
                 flash(f"Manpower '{role_name}' added successfully!", "success")
 
+
             elif category == "operational":
+
                 cost_type = request.form.get("cost_type")
+
                 daily_cost = float(request.form.get("daily_cost") or 0)
 
+                type_value = request.form.get("type")  # dropdown se aata hai
+
                 entry = MasterOperational(
+
                     customer=customer,
+
                     location=location,
+
                     cost_type=cost_type,
-                    daily_cost=daily_cost
+
+                    daily_cost=daily_cost,
+
+                    type_=type_value  # 👈 alias use karo
+
                 )
+
                 db.session.add(entry)
+
                 flash(f"Operational cost '{cost_type}' added successfully!", "success")
 
             elif category == "consumables":
@@ -320,6 +335,7 @@ def master():
         operational_data=operational_data,
         consumables_data=consumables_data
     )
+
 
 
 @app.route("/delete/<category>/<int:index>")
