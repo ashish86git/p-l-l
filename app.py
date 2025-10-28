@@ -467,8 +467,15 @@ def normalize_key(s):
     """Normalize string for fuzzy matching."""
     return re.sub(r'[^a-z0-9]', '', (s or "").lower().strip())
 
+
 @app.route('/summary')
 def summary():
+    # Optional filters from UI
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    customer_filter = request.args.get('customer', '').lower().strip()
+    location_filter = request.args.get('location', '').lower().strip()
+
     groups = db.session.query(
         DailyInputData.input_date,
         DailyInputData.customer_key,
@@ -482,12 +489,23 @@ def summary():
         customer = (g.customer_key or "").lower().strip()
         location = (g.location_key or "").strip()
 
+        # === FILTER HANDLING ===
+        if start_date and str(date) < start_date:
+            continue
+        if end_date and str(date) > end_date:
+            continue
+        if customer_filter and customer_filter not in customer:
+            continue
+        if location_filter and location_filter not in location.lower():
+            continue
+
         # ---- Fetch daily input ----
         inputs = DailyInputData.query.filter_by(
             input_date=date,
             customer_key=g.customer_key,
             location_key=g.location_key
         ).all()
+
         input_dict = {
             normalize_key(i.field_name): float(i.field_value or 0)
             for i in inputs
@@ -502,31 +520,28 @@ def summary():
         op_rate = {normalize_key(o.cost_type): float(o.daily_cost or 0) for o in operational}
 
         # =====================================================
-        # 🔹 MANPOWER COST (Dynamic & Smart Matching)
+        # 🔹 MANPOWER COST
         # =====================================================
         manpower_cost = 0.0
         for role_key, rate in man_rate.items():
             for field_key, value in input_dict.items():
-                # agar field name me role name match karta hai
                 if role_key in field_key or field_key in role_key:
                     manpower_cost += value * rate
-                    break  # ek hi field se ek role ka match chahiye
+                    break
 
         # =====================================================
-        # 🔹 OTHER COST (Non-Manpower Inputs)
+        # 🔹 OTHER COST
         # =====================================================
         other_cost = 0.0
         for key, val in input_dict.items():
-            # skip manpower fields
             if any(role in key for role in man_rate.keys()):
                 continue
-            # skip revenue fields (to avoid double counting)
             if any(op in key for op in op_rate.keys()):
                 continue
             other_cost += val
 
         # =====================================================
-        # 🔹 CUSTOMER-SPECIFIC LOGIC (Revenue & Total Cost)
+        # 🔹 CUSTOMER-SPECIFIC LOGIC (Revenue & Cost)
         # =====================================================
         revenue = 0.0
         total_cost = 0.0
@@ -550,13 +565,7 @@ def summary():
             revenue = (outbound_cbm * outbound_rate) + (storage_cbm * storage_rate) + staff_welfare + tea
             total_cost = manpower_cost + other_cost
 
-        elif customer == "hike":
-            for cost_type, rate in op_rate.items():
-                if cost_type in input_dict:
-                    revenue += input_dict.get(cost_type, 0) * rate
-            total_cost = manpower_cost + other_cost
-
-        elif customer == "spario":
+        elif customer in ["hike", "spario"]:
             for cost_type, rate in op_rate.items():
                 if cost_type in input_dict:
                     revenue += input_dict.get(cost_type, 0) * rate
@@ -604,36 +613,20 @@ def summary():
             "net_profit_margin": round(net_profit_margin, 2)
         })
 
-    return render_template("summary.html", summary_data=summary_data)
+    # ✅ Calculate overall totals for summary cards
+    total_revenue = sum(item["revenue"] for item in summary_data)
+    total_cost = sum(item["total_cost"] for item in summary_data)
+    total_profit = sum(item["net_profit"] for item in summary_data)
+    avg_margin = (total_profit / total_revenue * 100) if total_revenue else 0
 
-
-
-@app.route('/api/summary_filter', methods=['GET'])
-def api_summary_filter():
-    """New API endpoint for dynamic filtering using AJAX."""
-    try:
-        date_filter = request.args.get('date', '')
-        customer_filter = request.args.get('customer', '')
-        location_filter = request.args.get('location', '')
-
-        # Calculate P&L using the DB-driven function with filters
-        summary_data = calculate_pl_summary_db(
-            date_filter=date_filter,
-            customer_filter=customer_filter,
-            location_filter=location_filter
-        )
-
-        # Convert Decimals to strings for JSON serialization
-        for item in summary_data:
-            for key, value in item.items():
-                if isinstance(value, Decimal):
-                    item[key] = str(value)
-
-        return jsonify(summary_data)
-
-    except Exception as e:
-        print(f"Error filtering summary data: {e}")
-        return jsonify({"error": str(e)}), 500
+    return render_template(
+        "summary.html",
+        summary_data=summary_data,
+        total_revenue=total_revenue,
+        total_cost=total_cost,
+        total_profit=total_profit,
+        avg_margin=avg_margin
+    )
 
 @app.route("/config")
 def config():
