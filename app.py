@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from decimal import Decimal
 import pandas as pd
 import numpy as np
+import re
+
 from flask_sqlalchemy import SQLAlchemy
 from decimal import Decimal
 import datetime
@@ -460,9 +462,13 @@ def daily_input():
     )
 
 
+
+def normalize_key(s):
+    """Normalize string for fuzzy matching."""
+    return re.sub(r'[^a-z0-9]', '', (s or "").lower().strip())
+
 @app.route('/summary')
 def summary():
-    # Fetch distinct groups
     groups = db.session.query(
         DailyInputData.input_date,
         DailyInputData.customer_key,
@@ -473,91 +479,132 @@ def summary():
 
     for g in groups:
         date = g.input_date
-        customer = g.customer_key
-        location = g.location_key
+        customer = (g.customer_key or "").lower().strip()
+        location = (g.location_key or "").strip()
 
-        # Fetch all input rows for this group
+        # ---- Fetch daily input ----
         inputs = DailyInputData.query.filter_by(
             input_date=date,
-            customer_key=customer,
-            location_key=location
+            customer_key=g.customer_key,
+            location_key=g.location_key
         ).all()
+        input_dict = {
+            normalize_key(i.field_name): float(i.field_value or 0)
+            for i in inputs
+        }
 
-        # Convert to dict for easy lookup
-        input_dict = {row.field_name.lower(): float(row.field_value or 0) for row in inputs}
+        # ---- Fetch master data ----
+        manpower = MasterManpower.query.filter_by(customer=g.customer_key, location=g.location_key).all()
+        operational = MasterOperational.query.filter_by(customer=g.customer_key, location=g.location_key).all()
 
-        # Fetch master rates
-        manpower = MasterManpower.query.filter_by(customer=customer, location=location).all()
-        operational = MasterOperational.query.filter_by(customer=customer, location=location).all()
+        # ---- Create rate dictionaries ----
+        man_rate = {normalize_key(m.role_name): float(m.daily_cost or 0) for m in manpower}
+        op_rate = {normalize_key(o.cost_type): float(o.daily_cost or 0) for o in operational}
 
-        man_rate = {m.role_name.lower(): float(m.daily_cost or 0) for m in manpower}
-        man_ot = {m.role_name.lower(): float(m.ot_cost or 0) for m in manpower}
-        op_rate = {o.cost_type.lower(): float(o.daily_cost or 0) for o in operational}
+        # =====================================================
+        # 🔹 MANPOWER COST (Dynamic & Smart Matching)
+        # =====================================================
+        manpower_cost = 0.0
+        for role_key, rate in man_rate.items():
+            for field_key, value in input_dict.items():
+                # agar field name me role name match karta hai
+                if role_key in field_key or field_key in role_key:
+                    manpower_cost += value * rate
+                    break  # ek hi field se ek role ka match chahiye
 
-        # --- Formula Application ---
+        # =====================================================
+        # 🔹 OTHER COST (Non-Manpower Inputs)
+        # =====================================================
+        other_cost = 0.0
+        for key, val in input_dict.items():
+            # skip manpower fields
+            if any(role in key for role in man_rate.keys()):
+                continue
+            # skip revenue fields (to avoid double counting)
+            if any(op in key for op in op_rate.keys()):
+                continue
+            other_cost += val
 
-        # Variable Revenue
-        outbound_cbm = input_dict.get("outbound_cbm", 0)
-        tea = input_dict.get("tea", 0)
-        staff_welfare = input_dict.get("staff_welfare", 0)
-        outbound_rate = op_rate.get("outbound/cbm", 0)
+        # =====================================================
+        # 🔹 CUSTOMER-SPECIFIC LOGIC (Revenue & Total Cost)
+        # =====================================================
+        revenue = 0.0
+        total_cost = 0.0
 
-        variable_revenue = (outbound_cbm * outbound_rate) + tea + staff_welfare
+        if customer == "lifelong":
+            outbound_cbm = input_dict.get("outboundcbm", 0)
+            storage_cbm = input_dict.get("storagedaycbm", 0)
+            staff_welfare = input_dict.get("staffwelfare", 0)
+            tea = input_dict.get("tea", 0)
 
-        # Total Revenue
-        storage_day_cbm = input_dict.get("storage_day_cbm", 0)
-        storage_rate = op_rate.get("storage/day/cbm", 0)
-        total_revenue = (storage_day_cbm * storage_rate) + variable_revenue
+            op_revenue = {
+                normalize_key(o.cost_type): float(o.daily_cost or 0)
+                for o in MasterOperational.query.filter_by(
+                    customer=g.customer_key, location=g.location_key, type_="Revenue"
+                ).all()
+            }
 
-        # Calculate Total Staff Cost
-        total_staff_cost = 0
-        total_staff_cost += input_dict.get("blue_collar", 0) * man_rate.get("blue collar (attendance)", 0)
-        total_staff_cost += input_dict.get("loading_unloading", 0) * man_rate.get("loading & unloading(attendance)", 0)
-        total_staff_cost += input_dict.get("electrition", 0) * man_rate.get("electretion", 0)
-        total_staff_cost += input_dict.get("house_keeping", 0) * man_rate.get("house keeping", 0)
-        total_staff_cost += input_dict.get("security_guard", 0) * man_rate.get("security guard", 0)
-        total_staff_cost += input_dict.get("security_supervisor", 0) * man_rate.get("security supervisor", 0)
-        total_staff_cost += input_dict.get("overtime_blue_collar", 0) * man_ot.get("blue collar (attendance)", 0)
-        total_staff_cost += input_dict.get("overtime_supervisor", 0) * man_ot.get("security supervisor", 0)
+            outbound_rate = op_revenue.get("outboundcbm", 0)
+            storage_rate = op_revenue.get("storagedaycbm", 0)
 
-        # Add Fixed White Collar Cost
-        total_staff_cost += 8784
+            revenue = (outbound_cbm * outbound_rate) + (storage_cbm * storage_rate) + staff_welfare + tea
+            total_cost = manpower_cost + other_cost
 
-        # Calculate Total Cost = Total Staff Cost + all other input expenses
-        exclude_fields = [
-            "blue_collar", "loading_unloading", "electrition", "house_keeping",
-            "security_guard", "security_supervisor",
-            "overtime_blue_collar", "overtime_supervisor",
-            "outbound_cbm", "storage_day_cbm", "tea", "staff_welfare"
-        ]
+        elif customer == "hike":
+            for cost_type, rate in op_rate.items():
+                if cost_type in input_dict:
+                    revenue += input_dict.get(cost_type, 0) * rate
+            total_cost = manpower_cost + other_cost
 
-        other_costs = sum(
-            value for key, value in input_dict.items() if key not in exclude_fields
-        )
+        elif customer == "spario":
+            for cost_type, rate in op_rate.items():
+                if cost_type in input_dict:
+                    revenue += input_dict.get(cost_type, 0) * rate
+            total_cost = manpower_cost + other_cost
 
-        total_cost = total_staff_cost + other_costs
+        elif customer == "drona":
+            total_orders = input_dict.get("orders", 0)
+            revenue_per_order = op_rate.get("perorder", 0)
+            tea = input_dict.get("tea", 0)
+            transport = input_dict.get("transport", 0)
+            revenue = total_orders * revenue_per_order
+            total_cost = manpower_cost + transport + tea + other_cost
 
-        # Profit Calculations
-        gross_profit = total_revenue - total_staff_cost
-        net_profit = total_revenue - total_cost
-        net_profit_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+        elif customer == "tcs":
+            total_files = input_dict.get("filesprocessed", 0)
+            revenue_per_file = op_rate.get("perfile", 0)
+            stationery = input_dict.get("stationery", 0)
+            digital = input_dict.get("digitalprocess", 0)
+            revenue = total_files * revenue_per_file
+            total_cost = manpower_cost + stationery + digital + other_cost
+
+        else:
+            for cost_type, rate in op_rate.items():
+                if cost_type in input_dict:
+                    revenue += input_dict.get(cost_type, 0) * rate
+            total_cost = manpower_cost + other_cost
+
+        # =====================================================
+        # 🔹 PROFIT CALCULATIONS
+        # =====================================================
+        gross_profit = revenue - manpower_cost
+        net_profit = revenue - total_cost
+        net_profit_margin = (net_profit / revenue * 100) if revenue > 0 else 0
 
         summary_data.append({
-            'date': date,
-            'customer': customer,
-            'location': location,
-            'variable_revenue': round(variable_revenue, 2),
-            'total_revenue': round(total_revenue, 2),
-            'total_staff_cost': round(total_staff_cost, 2),
-            'total_cost': round(total_cost, 2),
-            'gross_profit': round(gross_profit, 2),
-            'net_profit': round(net_profit, 2),
-            'net_profit_margin': round(net_profit_margin, 2)
+            "date": date,
+            "customer": customer,
+            "location": location,
+            "revenue": round(revenue, 2),
+            "manpower_cost": round(manpower_cost, 2),
+            "other_cost": round(other_cost, 2),
+            "total_cost": round(total_cost, 2),
+            "gross_profit": round(gross_profit, 2),
+            "net_profit": round(net_profit, 2),
+            "net_profit_margin": round(net_profit_margin, 2)
         })
 
-    return render_template('summary.html', summary_data=summary_data)
-
-
+    return render_template("summary.html", summary_data=summary_data)
 
 
 
