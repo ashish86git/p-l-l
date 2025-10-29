@@ -463,157 +463,249 @@ def daily_input():
 
 
 
+
 def normalize_key(s):
     """Normalize string for fuzzy matching."""
     return re.sub(r'[^a-z0-9]', '', (s or "").lower().strip())
 
-
 @app.route('/summary')
 def summary():
-    # Optional filters from UI
+    # ------------------- FILTERS -------------------
     start_date = request.args.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip()
-    customer_filter = request.args.get('customer', '').lower().strip()
-    location_filter = request.args.get('location', '').lower().strip()
+    customer_filter = normalize_key(request.args.get('customer', ''))
+    location_filter = normalize_key(request.args.get('location', ''))
 
-    groups = db.session.query(
-        DailyInputData.input_date,
-        DailyInputData.customer_key,
-        DailyInputData.location_key
+    # ✅ Get all unique customer-location combinations from master
+    master_groups = db.session.query(
+        MasterOperational.customer,
+        MasterOperational.location
     ).distinct().all()
 
+    # ✅ Get distinct input dates (so we can still calculate per day)
+    all_dates = [r[0] for r in db.session.query(DailyInputData.input_date).distinct().all()]
+
     summary_data = []
+    breakdown_data = []  # <-- ✅ NEW list for detailed breakdown rows
 
-    for g in groups:
-        date = g.input_date
-        customer = (g.customer_key or "").lower().strip()
-        location = (g.location_key or "").strip()
+    for date in all_dates:
+        for mg in master_groups:
+            customer = (mg.customer or "").strip()
+            location = (mg.location or "").strip()
+            customer_norm = normalize_key(customer)
+            location_norm = normalize_key(location)
 
-        # === FILTER HANDLING ===
-        if start_date and str(date) < start_date:
-            continue
-        if end_date and str(date) > end_date:
-            continue
-        if customer_filter and customer_filter not in customer:
-            continue
-        if location_filter and location_filter not in location.lower():
-            continue
-
-        # ---- Fetch daily input ----
-        inputs = DailyInputData.query.filter_by(
-            input_date=date,
-            customer_key=g.customer_key,
-            location_key=g.location_key
-        ).all()
-
-        input_dict = {
-            normalize_key(i.field_name): float(i.field_value or 0)
-            for i in inputs
-        }
-
-        # ---- Fetch master data ----
-        manpower = MasterManpower.query.filter_by(customer=g.customer_key, location=g.location_key).all()
-        operational = MasterOperational.query.filter_by(customer=g.customer_key, location=g.location_key).all()
-
-        # ---- Create rate dictionaries ----
-        man_rate = {normalize_key(m.role_name): float(m.daily_cost or 0) for m in manpower}
-        op_rate = {normalize_key(o.cost_type): float(o.daily_cost or 0) for o in operational}
-
-        # =====================================================
-        # 🔹 MANPOWER COST
-        # =====================================================
-        manpower_cost = 0.0
-        for role_key, rate in man_rate.items():
-            for field_key, value in input_dict.items():
-                if role_key in field_key or field_key in role_key:
-                    manpower_cost += value * rate
-                    break
-
-        # =====================================================
-        # 🔹 OTHER COST
-        # =====================================================
-        other_cost = 0.0
-        for key, val in input_dict.items():
-            if any(role in key for role in man_rate.keys()):
+            # ---- FILTERS ----
+            if start_date and str(date) < start_date:
                 continue
-            if any(op in key for op in op_rate.keys()):
+            if end_date and str(date) > end_date:
                 continue
-            other_cost += val
+            if customer_filter and customer_filter not in customer_norm:
+                continue
+            if location_filter and location_filter not in location_norm:
+                continue
 
-        # =====================================================
-        # 🔹 CUSTOMER-SPECIFIC LOGIC (Revenue & Cost)
-        # =====================================================
-        revenue = 0.0
-        total_cost = 0.0
-
-        if customer == "lifelong":
-            outbound_cbm = input_dict.get("outboundcbm", 0)
-            storage_cbm = input_dict.get("storagedaycbm", 0)
-            staff_welfare = input_dict.get("staffwelfare", 0)
-            tea = input_dict.get("tea", 0)
-
-            op_revenue = {
-                normalize_key(o.cost_type): float(o.daily_cost or 0)
-                for o in MasterOperational.query.filter_by(
-                    customer=g.customer_key, location=g.location_key, type_="Revenue"
-                ).all()
+            # ------------------- INPUT DATA -------------------
+            inputs = DailyInputData.query.filter_by(
+                input_date=date,
+                customer_key=customer,
+                location_key=location
+            ).all()
+            input_dict = {
+                normalize_key(i.field_name): float(i.field_value or 0)
+                for i in inputs
             }
 
-            outbound_rate = op_revenue.get("outboundcbm", 0)
-            storage_rate = op_revenue.get("storagedaycbm", 0)
+            # ------------------- MASTER DATA -------------------
+            manpower = MasterManpower.query.filter_by(customer=customer, location=location).all()
+            operational = MasterOperational.query.filter_by(customer=customer, location=location).all()
 
-            revenue = (outbound_cbm * outbound_rate) + (storage_cbm * storage_rate) + staff_welfare + tea
-            total_cost = manpower_cost + other_cost
+            op_cost = {normalize_key(o.cost_type): float(o.daily_cost or 0)
+                       for o in operational if (o.type_ or "").lower() == "cost"}
+            op_rate = {normalize_key(o.cost_type): float(o.daily_cost or 0)
+                       for o in operational if (o.type_ or "").lower() == "revenue"}
+            man_rate = {normalize_key(m.role_name): float(m.daily_cost or 0) for m in manpower}
 
-        elif customer in ["hike", "spario"]:
-            for cost_type, rate in op_rate.items():
-                if cost_type in input_dict:
-                    revenue += input_dict.get(cost_type, 0) * rate
-            total_cost = manpower_cost + other_cost
+            # =====================================================
+            # 🔹 MANPOWER COST
+            # =====================================================
+            manpower_cost = 0.0
+            for role_key, rate in man_rate.items():
+                for field_key, value in input_dict.items():
+                    if role_key in field_key or field_key in role_key:
+                        manpower_cost += value * rate
+                        # ✅ Breakdown entry
+                        breakdown_data.append({
+                            "date": date,
+                            "customer": customer,
+                            "location": location,
+                            "category": "Manpower",
+                            "field": field_key,
+                            "quantity": value,
+                            "rate": rate,
+                            "amount": round(value * rate, 2)
+                        })
+                        break
 
-        elif customer == "drona":
-            total_orders = input_dict.get("orders", 0)
-            revenue_per_order = op_rate.get("perorder", 0)
-            tea = input_dict.get("tea", 0)
-            transport = input_dict.get("transport", 0)
-            revenue = total_orders * revenue_per_order
-            total_cost = manpower_cost + transport + tea + other_cost
+            # =====================================================
+            # 🔹 OTHER COST
+            # =====================================================
+            other_cost = 0.0
+            for key, val in input_dict.items():
+                if any(role in key for role in man_rate.keys()):
+                    continue
+                if any(op in key for op in op_rate.keys()):
+                    continue
+                other_cost += val
+                breakdown_data.append({
+                    "date": date,
+                    "customer": customer,
+                    "location": location,
+                    "category": "Other Cost",
+                    "field": key,
+                    "quantity": val,
+                    "rate": 0,
+                    "amount": val
+                })
 
-        elif customer == "tcs":
-            total_files = input_dict.get("filesprocessed", 0)
-            revenue_per_file = op_rate.get("perfile", 0)
-            stationery = input_dict.get("stationery", 0)
-            digital = input_dict.get("digitalprocess", 0)
-            revenue = total_files * revenue_per_file
-            total_cost = manpower_cost + stationery + digital + other_cost
+            # =====================================================
+            # 🔹 CUSTOMER-SPECIFIC LOGIC
+            # =====================================================
+            revenue = 0.0
+            total_cost = 0.0
 
-        else:
-            for cost_type, rate in op_rate.items():
-                if cost_type in input_dict:
-                    revenue += input_dict.get(cost_type, 0) * rate
-            total_cost = manpower_cost + other_cost
+            # ------------------- LIFELONG -------------------
+            if customer_norm == "lifelong":
+                outbound_cbm = input_dict.get("outboundcbm", 0)
+                storage_cbm = input_dict.get("storagedaycbm", 0)
+                staff_welfare = input_dict.get("staffwelfare", 0)
+                tea = input_dict.get("tea", 0)
 
-        # =====================================================
-        # 🔹 PROFIT CALCULATIONS
-        # =====================================================
-        gross_profit = revenue - manpower_cost
-        net_profit = revenue - total_cost
-        net_profit_margin = (net_profit / revenue * 100) if revenue > 0 else 0
+                op_revenue = {
+                    normalize_key(o.cost_type): float(o.daily_cost or 0)
+                    for o in MasterOperational.query.filter_by(
+                        customer=customer, location=location, type_="Revenue"
+                    ).all()
+                }
 
-        summary_data.append({
-            "date": date,
-            "customer": customer,
-            "location": location,
-            "revenue": round(revenue, 2),
-            "manpower_cost": round(manpower_cost, 2),
-            "other_cost": round(other_cost, 2),
-            "total_cost": round(total_cost, 2),
-            "gross_profit": round(gross_profit, 2),
-            "net_profit": round(net_profit, 2),
-            "net_profit_margin": round(net_profit_margin, 2)
-        })
+                outbound_rate = op_revenue.get("outboundcbm", 0)
+                storage_rate = op_revenue.get("storagedaycbm", 0)
 
-    # ✅ Calculate overall totals for summary cards
+                revenue = (outbound_cbm * outbound_rate) + (storage_cbm * storage_rate) + staff_welfare + tea
+                total_cost = manpower_cost + other_cost
+
+                breakdown_data.append({
+                    "date": date, "customer": customer, "location": location,
+                    "category": "Revenue",
+                    "field": "outbound + storage + staff_welfare + tea",
+                    "quantity": outbound_cbm + storage_cbm,
+                    "rate": outbound_rate or storage_rate,
+                    "amount": round(revenue, 2)
+                })
+
+            # ------------------- HIKE -------------------
+            elif customer_norm == "hike":
+                hike_revenue = 0.0
+                hike_other_cost = 0.0
+                hike_manpower_cost = 0.0
+
+                # Revenue
+                for cost_type, rate in op_rate.items():
+                    for key, val in input_dict.items():
+                        if cost_type in key or key in cost_type:
+                            hike_revenue += val * rate
+                            breakdown_data.append({
+                                "date": date, "customer": customer, "location": location,
+                                "category": "Revenue",
+                                "field": key, "quantity": val,
+                                "rate": rate, "amount": round(val * rate, 2)
+                            })
+
+                # Cost (non-manpower)
+                for cost_type in op_cost.keys():
+                    for key, val in input_dict.items():
+                        if cost_type in key or key in cost_type:
+                            hike_other_cost += val
+                            breakdown_data.append({
+                                "date": date, "customer": customer, "location": location,
+                                "category": "Operation Cost",
+                                "field": key, "quantity": val,
+                                "rate": 0, "amount": val
+                            })
+
+                # Manpower
+                for role_key, rate in man_rate.items():
+                    for field_key, val in input_dict.items():
+                        if role_key in field_key or field_key in role_key:
+                            hike_manpower_cost += val * rate
+                            break
+
+                revenue = hike_revenue
+                manpower_cost = hike_manpower_cost
+                other_cost = hike_other_cost
+                total_cost = manpower_cost + other_cost
+
+            # ------------------- SPARIO (GURGAON) -------------------
+            elif customer_norm == "spario" and location_norm == "gurgaon":
+                total_orders = input_dict.get("orders", 0)
+                outbound_boxes = input_dict.get("outboundbox", 0)
+                inbound_boxes = input_dict.get("inboundbox", 0)
+                tea = input_dict.get("tea", 0)
+                transport = input_dict.get("transport", 0)
+
+                per_order_rate = op_rate.get("perorder", 0)
+                outbound_box_rate = op_rate.get("outbound_box", 0)
+                inbound_box_rate = op_rate.get("inbound_box", 0)
+
+                revenue = (total_orders * per_order_rate) + (outbound_boxes * outbound_box_rate) + (inbound_boxes * inbound_box_rate)
+                total_cost = manpower_cost + transport + tea + other_cost
+
+                breakdown_data.append({
+                    "date": date, "customer": customer, "location": location,
+                    "category": "Revenue",
+                    "field": "orders/outbound/inbound",
+                    "quantity": total_orders + outbound_boxes + inbound_boxes,
+                    "rate": per_order_rate or outbound_box_rate or inbound_box_rate,
+                    "amount": round(revenue, 2)
+                })
+
+            # ------------------- OTHERS -------------------
+            else:
+                for cost_type, rate in op_rate.items():
+                    if cost_type in input_dict:
+                        val = input_dict.get(cost_type, 0)
+                        revenue += val * rate
+                        breakdown_data.append({
+                            "date": date, "customer": customer, "location": location,
+                            "category": "Revenue",
+                            "field": cost_type, "quantity": val,
+                            "rate": rate, "amount": round(val * rate, 2)
+                        })
+                total_cost = manpower_cost + other_cost
+
+            # =====================================================
+            # 🔹 PROFIT CALCULATIONS
+            # =====================================================
+            gross_profit = revenue - manpower_cost
+            net_profit = revenue - total_cost
+            net_profit_margin = (net_profit / revenue * 100) if revenue > 0 else 0
+
+            summary_data.append({
+                "date": date,
+                "customer": customer,
+                "location": location,
+                "revenue": round(revenue, 2),
+                "manpower_cost": round(manpower_cost, 2),
+                "other_cost": round(other_cost, 2),
+                "total_cost": round(total_cost, 2),
+                "gross_profit": round(gross_profit, 2),
+                "net_profit": round(net_profit, 2),
+                "net_profit_margin": round(net_profit_margin, 2)
+            })
+
+    # =====================================================
+    # 🔹 SUMMARY TOTALS
+    # =====================================================
     total_revenue = sum(item["revenue"] for item in summary_data)
     total_cost = sum(item["total_cost"] for item in summary_data)
     total_profit = sum(item["net_profit"] for item in summary_data)
@@ -622,11 +714,13 @@ def summary():
     return render_template(
         "summary.html",
         summary_data=summary_data,
-        total_revenue=total_revenue,
-        total_cost=total_cost,
-        total_profit=total_profit,
-        avg_margin=avg_margin
+        breakdown_data=breakdown_data,  # ✅ send breakdown data
+        total_revenue=round(total_revenue, 2),
+        total_cost=round(total_cost, 2),
+        total_profit=round(total_profit, 2),
+        avg_margin=round(avg_margin, 2)
     )
+
 
 @app.route("/config")
 def config():
