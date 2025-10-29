@@ -175,9 +175,10 @@
     </div>
 
     <!-- NEW: Breakdown Summary -->
+    <!-- GROUPED BREAKDOWN SUMMARY -->
     {% if breakdown_data %}
     <div class="summary-card">
-      <h4 class="mb-3 text-secondary">Detailed Breakdown</h4>
+      <h4 class="mb-3 text-secondary">Category-Wise Breakdown Summary</h4>
       <div class="table-responsive">
         <table class="table table-bordered align-middle text-center">
           <thead>
@@ -186,23 +187,27 @@
               <th>Customer</th>
               <th>Location</th>
               <th>Category</th>
-              <th>Field</th>
-              <th>Quantity</th>
-              <th>Rate</th>
-              <th>Amount</th>
+              <th>Total Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
+            {% set grouped = {} %}
             {% for row in breakdown_data %}
+              {% set key = (row.date, row.customer, row.location, row.category) %}
+              {% if key not in grouped %}
+                {% set _ = grouped.update({ key: row.amount }) %}
+              {% else %}
+                {% set _ = grouped.update({ key: grouped[key] + row.amount }) %}
+              {% endif %}
+            {% endfor %}
+
+            {% for key, total_amount in grouped.items() %}
             <tr>
-              <td>{{ row.date }}</td>
-              <td>{{ row.customer }}</td>
-              <td>{{ row.location }}</td>
-              <td>{{ row.category }}</td>
-              <td>{{ row.field }}</td>
-              <td>{{ row.quantity }}</td>
-              <td>₹{{ "{:,.2f}".format(row.rate) }}</td>
-              <td>₹{{ "{:,.2f}".format(row.amount) }}</td>
+              <td>{{ key[0] }}</td>
+              <td>{{ key[1] }}</td>
+              <td>{{ key[2] }}</td>
+              <td>{{ key[3] }}</td>
+              <td>₹{{ "{:,.2f}".format(total_amount) }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -210,6 +215,7 @@
       </div>
     </div>
     {% endif %}
+
 
 
     <div class="footer-note">
