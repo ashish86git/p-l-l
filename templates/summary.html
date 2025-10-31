@@ -60,14 +60,27 @@
       box-shadow: 0 3px 10px rgba(0,0,0,0.08);
       margin-bottom: 25px;
     }
+    .home-btn {
+      position: fixed;
+      top: 25px;
+      right: 40px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
 
+  <!-- 🏠 Home Button -->
+  <div class="home-btn">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-lg">
+      🏠 Home
+    </a>
+  </div>
+
   <div class="container">
     <h2 class="mb-4 text-center">📊 Daily Customer Summary Dashboard</h2>
 
-    <!-- Filter Section -->
+    <!-- 🔍 Filter Section -->
     <form method="get" action="{{ url_for('summary') }}" class="filter-section">
       <div class="row g-3 align-items-end">
         <div class="col-md-3">
@@ -93,7 +106,7 @@
       </div>
     </form>
 
-    <!-- Summary Cards -->
+    <!-- 📈 Summary Cards -->
     {% if summary_data %}
     <div class="row mb-4">
       <div class="col-md-3">
@@ -127,10 +140,11 @@
     </div>
     {% endif %}
 
-    <!-- Customer-Wise Summary -->
+    <!-- 🧾 Customer-Wise Summary -->
     <div class="summary-card">
       <h4 class="mb-3 text-secondary">Customer-Wise Summary</h4>
       {% if summary_data %}
+      {% set sorted_summary = summary_data | sort(attribute='date', reverse=True) %}
       <div class="table-responsive">
         <table class="table table-bordered align-middle text-center">
           <thead>
@@ -148,7 +162,7 @@
             </tr>
           </thead>
           <tbody>
-            {% for row in summary_data %}
+            {% for row in sorted_summary %}
             <tr>
               <td>{{ row.date.strftime('%Y-%m-%d') if row.date else '' }}</td>
               <td class="text-uppercase">{{ row.customer }}</td>
@@ -174,11 +188,11 @@
       {% endif %}
     </div>
 
-    <!-- NEW: Breakdown Summary -->
-    <!-- GROUPED BREAKDOWN SUMMARY -->
+    <!-- ⚙️ Category-Wise Breakdown Summary -->
     {% if breakdown_data %}
     <div class="summary-card">
       <h4 class="mb-3 text-secondary">Category-Wise Breakdown Summary</h4>
+      {% set sorted_data = breakdown_data | sort(attribute='date', reverse=True) %}
       <div class="table-responsive">
         <table class="table table-bordered align-middle text-center">
           <thead>
@@ -186,28 +200,35 @@
               <th>Date</th>
               <th>Customer</th>
               <th>Location</th>
-              <th>Category</th>
-              <th>Total Amount (₹)</th>
+              <th>Manpower</th>
+              <th>Other Cost</th>
+              <th>Revenue</th>
             </tr>
           </thead>
           <tbody>
             {% set grouped = {} %}
-            {% for row in breakdown_data %}
-              {% set key = (row.date, row.customer, row.location, row.category) %}
+            {% for row in sorted_data %}
+              {% set key = (row.date, row.customer, row.location) %}
               {% if key not in grouped %}
-                {% set _ = grouped.update({ key: row.amount }) %}
-              {% else %}
-                {% set _ = grouped.update({ key: grouped[key] + row.amount }) %}
+                {% set _ = grouped.update({key: {'Manpower': 0, 'Other Cost': 0, 'Revenue': 0}}) %}
+              {% endif %}
+              {% if row.category == 'Manpower' %}
+                {% set _ = grouped[key].update({'Manpower': grouped[key]['Manpower'] + row.amount}) %}
+              {% elif row.category == 'Other Cost' %}
+                {% set _ = grouped[key].update({'Other Cost': grouped[key]['Other Cost'] + row.amount}) %}
+              {% elif row.category == 'Revenue' %}
+                {% set _ = grouped[key].update({'Revenue': grouped[key]['Revenue'] + row.amount}) %}
               {% endif %}
             {% endfor %}
 
-            {% for key, total_amount in grouped.items() %}
+            {% for key, values in grouped.items() | sort(reverse=True) %}
             <tr>
               <td>{{ key[0] }}</td>
               <td>{{ key[1] }}</td>
               <td>{{ key[2] }}</td>
-              <td>{{ key[3] }}</td>
-              <td>₹{{ "{:,.2f}".format(total_amount) }}</td>
+              <td>₹{{ "{:,.2f}".format(values['Manpower']) }}</td>
+              <td>₹{{ "{:,.2f}".format(values['Other Cost']) }}</td>
+              <td>₹{{ "{:,.2f}".format(values['Revenue']) }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -215,8 +236,6 @@
       </div>
     </div>
     {% endif %}
-
-
 
     <div class="footer-note">
       Generated dynamically based on master data and daily inputs.
