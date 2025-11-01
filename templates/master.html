@@ -34,6 +34,15 @@
             background-color: var(--bs-primary);
             color: white;
         }
+        /* Style for the new Edit button */
+        .btn-outline-primary.btn-edit {
+            color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-outline-primary.btn-edit:hover {
+            background-color: #0d6efd;
+            color: white;
+        }
 
         /* Navbar active link style */
         .navbar-nav .nav-link.active {
@@ -142,7 +151,7 @@
                 <button class="btn btn-outline-primary w-100 py-2" onclick="applyMasterFilter()">Apply Filter (Client-Side)</button>
             </div>
         </div>
-        <small class="text-muted mt-3">Note: Filtering is for UI presentation only; tables are fully server-side managed.</small>
+        <small class="text-muted mt-3">Note: This filter hides/shows rows in the UI only.</small>
     </div>
 
     <ul class="nav nav-tabs mb-4" id="masterTabs" role="tablist">
@@ -162,9 +171,10 @@
         <div class="tab-pane fade show active" id="manpower" role="tabpanel" aria-labelledby="manpower-tab">
             <div class="card mb-5">
                 <div class="card-body">
-                    <h5 class="card-title text-primary mb-3">➕ Add Manpower Role</h5>
+                    <h5 class="card-title text-primary mb-3">➕ Add/Update Manpower Role</h5>
                     <form method="POST" class="needs-validation" novalidate>
                         <input type="hidden" name="category" value="manpower">
+                        <input type="hidden" name="entry_id" id="manpower_entry_id" value="">
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label for="manpower_customer" class="form-label visually-hidden">Customer</label>
@@ -192,7 +202,14 @@
                                 <input type="number" step="0.01" name="ot_cost" id="manpower_ot_cost" class="form-control" placeholder="OT Cost">
                             </div>
                             <div class="col-12 mt-4">
-                                <button type="submit" class="btn btn-primary w-100 py-2">Add Role</button>
+                                <div class="row">
+                                    <div class="col-sm-9">
+                                        <button type="submit" id="manpower_submit_btn" class="btn btn-primary w-100 py-2">Add Role</button>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <button type="button" id="manpower_cancel_btn" class="btn btn-outline-secondary w-100 py-2" style="display: none;" onclick="cancelEdit('manpower')">Cancel</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -217,14 +234,24 @@
                             </thead>
                             <tbody>
                                 {% for role in manpower_data %}
-                                <tr>
-                                    <td>{{ role.customer }}</td>
+                                <tr data-category="manpower">
+                                    <td data-customer="{{ role.customer }}">{{ role.customer }}</td>
                                     <td>{{ role.role_name }}</td>
-                                    <td>{{ role.location }}</td>
+                                    <td data-location="{{ role.location }}">{{ role.location }}</td>
                                     <td>{{ role.monthly_salary }}</td>
                                     <td>{{ role.daily_cost }}</td>
                                     <td>{{ role.ot_cost }}</td>
-                                    <td>
+                                    <td class="text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary btn-edit me-1"
+                                                data-id="{{ role.id }}"
+                                                data-customer="{{ role.customer }}"
+                                                data-role="{{ role.role_name }}"
+                                                data-location="{{ role.location }}"
+                                                data-salary="{{ role.monthly_salary }}"
+                                                data-ot="{{ role.ot_cost | default('', true) }}"
+                                                onclick="editManpower(this)">
+                                            Edit
+                                        </button>
                                         <a href="{{ url_for('delete_entry', category='manpower', index=role.id) }}" class="btn btn-sm btn-danger">Delete</a>
                                     </td>
                                 </tr>
@@ -239,9 +266,10 @@
         <div class="tab-pane fade" id="operational" role="tabpanel" aria-labelledby="operational-tab">
             <div class="card mb-5">
                 <div class="card-body">
-                    <h5 class="card-title text-primary mb-3">➕ Add Operational Cost</h5>
+                    <h5 class="card-title text-primary mb-3">➕ Add/Update Operational Cost</h5>
                     <form method="POST" class="needs-validation" novalidate>
                         <input type="hidden" name="category" value="operational">
+                        <input type="hidden" name="entry_id" id="operational_entry_id" value="">
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label for="operational_customer" class="form-label visually-hidden">Customer</label>
@@ -268,7 +296,6 @@
                                 <input type="number" step="0.01" name="daily_cost" id="operational_daily_cost" class="form-control" placeholder="Daily Cost" required>
                             </div>
 
-                            <!-- 👇 Type dropdown -->
                             <div class="col-md-3">
                                 <label for="operational_type" class="form-label visually-hidden">Type</label>
                                 <select name="type" id="operational_type" class="form-select">
@@ -279,7 +306,14 @@
                             </div>
 
                             <div class="col-12 mt-4">
-                                <button type="submit" class="btn btn-primary w-100 py-2">Add Cost</button>
+                                <div class="row">
+                                    <div class="col-sm-9">
+                                        <button type="submit" id="operational_submit_btn" class="btn btn-primary w-100 py-2">Add Cost</button>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <button type="button" id="operational_cancel_btn" class="btn btn-outline-secondary w-100 py-2" style="display: none;" onclick="cancelEdit('operational')">Cancel</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -303,13 +337,23 @@
                             </thead>
                             <tbody>
                                 {% for op in operational_data %}
-                                <tr>
-                                    <td>{{ op.customer }}</td>
+                                <tr data-category="operational">
+                                    <td data-customer="{{ op.customer }}">{{ op.customer }}</td>
                                     <td>{{ op.cost_type }}</td>
-                                    <td>{{ op.location }}</td>
+                                    <td data-location="{{ op.location }}">{{ op.location }}</td>
                                     <td>{{ op.daily_cost }}</td>
-                                    <td>{{ op.type_  }}</td>
-                                    <td>
+                                    <td>{{ op.type_ }}</td>
+                                    <td class="text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary btn-edit me-1"
+                                                data-id="{{ op.id }}"
+                                                data-customer="{{ op.customer }}"
+                                                data-cost-type="{{ op.cost_type }}"
+                                                data-location="{{ op.location }}"
+                                                data-daily-cost="{{ op.daily_cost }}"
+                                                data-type="{{ op.type_ | default('', true) }}"
+                                                onclick="editOperational(this)">
+                                            Edit
+                                        </button>
                                         <a href="{{ url_for('delete_entry', category='operational', index=op.id) }}" class="btn btn-sm btn-danger">Delete</a>
                                     </td>
                                 </tr>
@@ -325,9 +369,10 @@
         <div class="tab-pane fade" id="consumables" role="tabpanel" aria-labelledby="consumables-tab">
             <div class="card mb-5">
                 <div class="card-body">
-                    <h5 class="card-title text-primary mb-3">➕ Add Consumable Item</h5>
+                    <h5 class="card-title text-primary mb-3">➕ Add/Update Consumable Item</h5>
                     <form method="POST" class="needs-validation" novalidate>
                         <input type="hidden" name="category" value="consumables">
+                        <input type="hidden" name="entry_id" id="consumables_entry_id" value="">
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label for="consumables_customer" class="form-label visually-hidden">Customer</label>
@@ -355,7 +400,14 @@
                                 <input type="number" name="quantity" id="consumables_quantity" class="form-control" placeholder="Quantity" required>
                             </div>
                             <div class="col-12 mt-4">
-                                <button type="submit" class="btn btn-primary w-100 py-2">Add Item</button>
+                                <div class="row">
+                                    <div class="col-sm-9">
+                                        <button type="submit" id="consumables_submit_btn" class="btn btn-primary w-100 py-2">Add Item</button>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <button type="button" id="consumables_cancel_btn" class="btn btn-outline-secondary w-100 py-2" style="display: none;" onclick="cancelEdit('consumables')">Cancel</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -379,13 +431,23 @@
                             </thead>
                             <tbody>
                                 {% for item in consumables_data %}
-                                <tr>
-                                    <td>{{ item.customer }}</td>
+                                <tr data-category="consumables">
+                                    <td data-customer="{{ item.customer }}">{{ item.customer }}</td>
                                     <td>{{ item.item_name }}</td>
-                                    <td>{{ item.location }}</td>
+                                    <td data-location="{{ item.location }}">{{ item.location }}</td>
                                     <td>{{ item.unit_cost }}</td>
                                     <td>{{ item.quantity }}</td>
-                                    <td>
+                                    <td class="text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary btn-edit me-1"
+                                                data-id="{{ item.id }}"
+                                                data-customer="{{ item.customer }}"
+                                                data-item-name="{{ item.item_name }}"
+                                                data-location="{{ item.location }}"
+                                                data-unit-cost="{{ item.unit_cost }}"
+                                                data-quantity="{{ item.quantity }}"
+                                                onclick="editConsumables(this)">
+                                            Edit
+                                        </button>
                                         <a href="{{ url_for('delete_entry', category='consumables', index=item.id) }}" class="btn btn-sm btn-danger">Delete</a>
                                     </td>
                                 </tr>
@@ -403,6 +465,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+  // --- EXISTING DATA & INITIALIZATION LOGIC (UNCHANGED) ---
   const fieldsMap = {
     "kothari_kickers": { "Hyderabad": {}, "Gurgaon": {} },
     "lifelong": { "Gurgaon": {} },
@@ -447,10 +510,37 @@
       custSelect.addEventListener("change", ()=>updateLocationDropdowns(custSelect, locSelect));
   });
 
+  // --- 👇 FIX: WORKING FILTER LOGIC IMPLEMENTED ---
   function applyMasterFilter() {
       const selectedCustomer = masterCustomerFilter.value;
       const selectedLocation = masterLocationFilter.value;
       console.log(`Filter: Customer=${selectedCustomer||'All'}, Location=${selectedLocation||'All'}`);
+
+      // Get all table rows inside the tab-panes
+      const tables = document.querySelectorAll('.tab-pane .table tbody');
+
+      tables.forEach(tbody => {
+          const rows = tbody.querySelectorAll('tr');
+          rows.forEach(row => {
+              // Customer is in the first cell's data-customer attribute (Line 245, 375, 502)
+              const rowCustomer = row.querySelector('td:nth-child(1)').dataset.customer || '';
+              // Location is in the third cell's data-location attribute
+              const rowLocation = row.querySelector('td:nth-child(3)').dataset.location || '';
+
+              // Check customer match
+              const customerMatch = (selectedCustomer === "") || (rowCustomer === selectedCustomer);
+
+              // Check location match
+              const locationMatch = (selectedLocation === "") || (rowLocation === selectedLocation);
+
+              // Show or hide row
+              if (customerMatch && locationMatch) {
+                  row.style.display = ''; // Show row
+              } else {
+                  row.style.display = 'none'; // Hide row
+              }
+          });
+      });
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
@@ -458,6 +548,105 @@
       updateLocationDropdowns(masterCustomerFilter, masterLocationFilter);
       formCustomerSelects.forEach(custSelect=>updateLocationDropdowns(custSelect, custSelect.closest('form').querySelector('.form-location')));
   });
+
+  // --- JAVASCRIPT FOR EDIT FUNCTIONALITY (MANPOWER & OPERATIONAL) ---
+
+  function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function editManpower(button) {
+      const data = button.dataset;
+      document.getElementById('manpower_entry_id').value = data.id;
+      const customerSelect = document.getElementById('manpower_customer');
+      customerSelect.value = data.customer;
+      customerSelect.dispatchEvent(new Event('change'));
+
+      document.getElementById('manpower_role_name').value = data.role;
+      document.getElementById('manpower_monthly_salary').value = data.salary;
+      document.getElementById('manpower_ot_cost').value = data.ot;
+
+      setTimeout(() => {
+          document.getElementById('manpower_location').value = data.location;
+      }, 100);
+
+      document.getElementById('manpower_submit_btn').textContent = 'Update Role';
+      document.getElementById('manpower_cancel_btn').style.display = 'block';
+      scrollToTop();
+  }
+
+  function editOperational(button) {
+      const data = button.dataset;
+      document.getElementById('operational_entry_id').value = data.id;
+      const customerSelect = document.getElementById('operational_customer');
+      customerSelect.value = data.customer;
+      customerSelect.dispatchEvent(new Event('change'));
+
+      document.getElementById('operational_cost_type').value = data.costType;
+      document.getElementById('operational_daily_cost').value = data.dailyCost;
+      document.getElementById('operational_type').value = data.type;
+
+      setTimeout(() => {
+          document.getElementById('operational_location').value = data.location;
+      }, 100);
+
+      document.getElementById('operational_submit_btn').textContent = 'Update Cost';
+      document.getElementById('operational_cancel_btn').style.display = 'block';
+      scrollToTop();
+  }
+
+  // --- 👇 FIX: CONSUMABLES EDIT BUTTON LOGIC COMPLETE KIYA GAYA ---
+  function editConsumables(button) {
+      const data = button.dataset;
+
+      // 1. Populate form fields
+      document.getElementById('consumables_entry_id').value = data.id;
+      const customerSelect = document.getElementById('consumables_customer');
+      customerSelect.value = data.customer;
+      customerSelect.dispatchEvent(new Event('change'));
+
+      document.getElementById('consumables_item_name').value = data.itemName;
+      document.getElementById('consumables_unit_cost').value = data.unitCost;
+      document.getElementById('consumables_quantity').value = data.quantity;
+
+      // 2. Set location after delay
+      setTimeout(() => {
+          document.getElementById('consumables_location').value = data.location;
+      }, 100);
+
+      // 3. Update buttons
+      document.getElementById('consumables_submit_btn').textContent = 'Update Item'; // FIX
+      document.getElementById('consumables_cancel_btn').style.display = 'block';    // FIX
+
+      // 4. Scroll to form
+      scrollToTop();
+  }
+
+  /**
+   * Resets a form when "Cancel" is clicked.
+   */
+  function cancelEdit(category) {
+      const form = document.querySelector(`#${category} form`);
+      if (form) {
+          form.reset();
+      }
+
+      document.getElementById(`${category}_entry_id`).value = '';
+
+      const customerSelect = document.getElementById(`${category}_customer`);
+      if (customerSelect) {
+          customerSelect.dispatchEvent(new Event('change'));
+      }
+
+      let buttonText = 'Add';
+      if (category === 'manpower') buttonText = 'Add Role';
+      else if (category === 'operational') buttonText = 'Add Cost';
+      else if (category === 'consumables') buttonText = 'Add Item';
+
+      document.getElementById(`${category}_submit_btn`).textContent = buttonText;
+      document.getElementById(`${category}_cancel_btn`).style.display = 'none';
+  }
+
 </script>
 </body>
 </html>
