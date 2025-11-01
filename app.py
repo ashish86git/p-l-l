@@ -615,31 +615,73 @@ def summary():
                         })
 
             # ---- SPARIO ----
+            # ---- SPARIO (GURGAON) ----
             elif customer_norm == "spario":
-                total_orders = input_dict.get("orders", 0)
-                outbound_boxes = input_dict.get("outboundbox", 0)
-                inbound_boxes = input_dict.get("inboundbox", 0)
-                tea = input_dict.get("tea", 0)
-                transport = input_dict.get("transport", 0)
+                revenue = Decimal('0.0')
 
-                per_order_rate = op_rate.get("perorder", 0)
-                outbound_box_rate = op_rate.get("outbound_box", 0)
-                inbound_box_rate = op_rate.get("inbound_box", 0)
+                # ===== 1️⃣ REVENUE CALCULATION =====
+                for field_name, rate in op_rate.items():
+                    field_norm = normalize_key(field_name)
+                    for input_field, input_val in input_dict.items():
+                        if field_norm == normalize_key(input_field):
+                            amt = input_val * rate
+                            revenue += amt
+                            breakdown_data.append({
+                                "date": date,
+                                "customer": customer,
+                                "location": location,
+                                "category": "Revenue",
+                                "field": field_name.replace('_', ' ').title(),
+                                "quantity": float(input_val),
+                                "rate": float(rate),
+                                "amount": float(amt)
+                            })
+                            break
 
-                revenue = (total_orders * per_order_rate) + (outbound_boxes * outbound_box_rate) + (inbound_boxes * inbound_box_rate)
-                for label, qty, rate in [
-                    ("Per Order", total_orders, per_order_rate),
-                    ("Outbound Box", outbound_boxes, outbound_box_rate),
-                    ("Inbound Box", inbound_boxes, inbound_box_rate)
-                ]:
-                    if qty:
+                # ===== 2️⃣ MANPOWER COST =====
+                manpower_cost = Decimal('0.0')
+                for role_key, rate in man_rate.items():
+                    role_norm = normalize_key(role_key)
+                    for input_field, count in input_dict.items():
+                        if role_norm == normalize_key(input_field):
+                            amount = count * rate
+                            manpower_cost += amount
+                            breakdown_data.append({
+                                "date": date,
+                                "customer": customer,
+                                "location": location,
+                                "category": "Manpower",
+                                "field": role_key.replace('_', ' ').title(),
+                                "quantity": float(count),
+                                "rate": float(rate),
+                                "amount": float(amount)
+                            })
+                            break
+
+                # ===== 3️⃣ OTHER COST =====
+                other_cost = Decimal('0.0')
+                for key, val in input_dict.items():
+                    key_norm = normalize_key(key)
+                    if any(normalize_key(role) == key_norm for role in man_rate.keys()):
+                        continue
+                    if any(normalize_key(rev) == key_norm for rev in op_rate.keys()):
+                        continue
+                    if key_norm.startswith("overtime"):
+                        continue
+                    if val:
+                        other_cost += val
                         breakdown_data.append({
-                            "date": date, "customer": customer, "location": location,
-                            "category": "Revenue", "field": label,
-                            "quantity": float(qty), "rate": float(rate),
-                            "amount": float(qty * rate)
+                            "date": date,
+                            "customer": customer,
+                            "location": location,
+                            "category": "Other Cost",
+                            "field": key.replace('_', ' ').title(),
+                            "quantity": float(val),
+                            "rate": 0,
+                            "amount": float(val)
                         })
-                other_cost += tea + transport
+
+
 
             # ---- KOTHARI GURGAON ----
             elif customer_norm == "kothari_kickers" and location_norm == "gurgaon":
