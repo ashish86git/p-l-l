@@ -1,246 +1,482 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Customer Daily Summary</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      background: linear-gradient(135deg, #e3f2fd, #f8f9fa);
-      font-family: 'Segoe UI', sans-serif;
-      padding: 30px;
-    }
-    .summary-card {
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      padding: 25px;
-      margin-bottom: 30px;
-    }
-    h2 {
-      color: #2c3e50;
-      font-weight: 600;
-      margin-bottom: 20px;
-    }
-    table {
-      font-size: 15px;
-    }
-    thead {
-      background: #2c3e50;
-      color: white;
-    }
-    tbody tr:hover {
-      background-color: #f1f3f6;
-    }
-    .profit-positive { color: green; font-weight: 600; }
-    .profit-negative { color: red; font-weight: 600; }
-    .footer-note {
-      font-size: 13px;
-      color: #777;
-      text-align: right;
-      margin-top: 10px;
-    }
-    .stats-card {
-      border-radius: 16px;
-      padding: 20px;
-      color: white;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-      transition: transform 0.2s ease-in-out;
-    }
-    .stats-card:hover { transform: translateY(-3px); }
-    .stats-icon { font-size: 30px; opacity: 0.8; }
-    .bg-revenue { background: linear-gradient(135deg, #00b09b, #96c93d); }
-    .bg-cost { background: linear-gradient(135deg, #ff9966, #ff5e62); }
-    .bg-profit { background: linear-gradient(135deg, #43cea2, #185a9d); }
-    .bg-margin { background: linear-gradient(135deg, #f7971e, #ffd200); color: #333; }
-    .filter-section {
-      background: #fff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-      margin-bottom: 25px;
-    }
-    .home-btn {
-      position: fixed;
-      top: 25px;
-      right: 40px;
-      z-index: 1000;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Summary Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for graphing functionality -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        /* --- CUSTOM THEME STYLES --- */
+        :root {
+            --primary-red: #B91C1C; /* Stronger Red 700 */
+            --secondary-red: #EF4444; /* Brighter Red 500 */
+            --green-profit: #10B981; /* Emerald Green */
+            --shadow-custom: 0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 5px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light Blue/Gray Background */
+        }
+        .card-shadow {
+            box-shadow: var(--shadow-custom);
+            transition: transform 0.3s ease;
+        }
+        .card-shadow:hover {
+             transform: translateY(-2px);
+        }
+        .table-header {
+            background-color: var(--primary-red);
+            color: white;
+            font-weight: 600;
+        }
+        .text-profit { color: var(--green-profit); }
+        .text-loss { color: var(--secondary-red); }
+
+        /* Custom Tailwind focus class for inputs */
+        .input-focus-red:focus {
+            border-color: var(--primary-red);
+            box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.3); /* Ring color */
+            outline: none;
+        }
+
+        /* Custom Gradients for KPI Cards */
+        .gradient-revenue { background-image: linear-gradient(135deg, #10B981, #059669); } /* Green */
+        .gradient-cost { background-image: linear-gradient(135deg, #EF4444, #B91C1C); } /* Red */
+        .gradient-profit { background-image: linear-gradient(135deg, #3B82F6, #2563EB); } /* Blue */
+        .gradient-margin { background-image: linear-gradient(135deg, #F59E0B, #D97706); } /* Amber */
+
+        /* Table Striping and Hover */
+        .table-body tr:nth-child(odd) {
+            background-color: #fef2f2; /* Light red stripe */
+        }
+        .table-body tr:hover {
+            background-color: #fecaca; /* Lighter red on hover */
+            transition: background-color 0.15s ease-in-out;
+        }
+    </style>
 </head>
-<body>
+<body class="p-4 md:p-10">
 
-  <!-- 🏠 Home Button -->
-  <div class="home-btn">
-    <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-lg">
-      🏠 Home
-    </a>
-  </div>
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-4xl font-extrabold text-gray-900 mb-8 border-b-4 border-red-500 pb-3 tracking-tight">
+            💰 Financial Performance Dashboard
+        </h1>
 
-  <div class="container">
-    <h2 class="mb-4 text-center">📊 Daily Customer Summary Dashboard</h2>
+        <!-- FILTER SECTION -->
+        <form method="get" action="{{ url_for('summary') }}" class="bg-white p-7 rounded-xl card-shadow mb-10 border-l-4 border-red-600 transition duration-300 hover:shadow-lg">
+            <h3 class="text-2xl font-bold text-gray-800 mb-5">Filter Analysis Period</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
 
-    <!-- 🔍 Filter Section -->
-    <form method="get" action="{{ url_for('summary') }}" class="filter-section">
-      <div class="row g-3 align-items-end">
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">From Date</label>
-          <input type="date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">To Date</label>
-          <input type="date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Customer</label>
-          <input type="text" name="customer" class="form-control" placeholder="Enter customer" value="{{ request.args.get('customer', '') }}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Location</label>
-          <input type="text" name="location" class="form-control" placeholder="Enter location" value="{{ request.args.get('location', '') }}">
-        </div>
-        <div class="col-md-12 text-end mt-3">
-          <button type="submit" class="btn btn-primary px-4">Apply Filters</button>
-          <a href="{{ url_for('summary') }}" class="btn btn-outline-secondary px-4">Reset</a>
-        </div>
-      </div>
-    </form>
+                <!-- From Date -->
+                <div>
+                    <label for="start_date" class="block text-sm font-semibold text-gray-700 mb-1">From Date</label>
+                    <input type="date" id="start_date" name="start_date" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
+                           value="{{ request.args.get('start_date', '') }}">
+                </div>
 
-    <!-- 📈 Summary Cards -->
-    {% if summary_data %}
-    <div class="row mb-4">
-      <div class="col-md-3">
-        <div class="stats-card bg-revenue text-center">
-          <div class="stats-icon mb-2">💰</div>
-          <h5>Total Revenue</h5>
-          <h3>₹{{ "{:,.2f}".format(total_revenue) }}</h3>
+                <!-- To Date -->
+                <div>
+                    <label for="end_date" class="block text-sm font-semibold text-gray-700 mb-1">To Date</label>
+                    <input type="date" id="end_date" name="end_date" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
+                           value="{{ request.args.get('end_date', '') }}">
+                </div>
+
+                <!-- Customer -->
+                <div>
+                    <label for="customer" class="block text-sm font-semibold text-gray-700 mb-1">Customer Name</label>
+                    <input type="text" id="customer" name="customer" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
+                           placeholder="Enter customer" value="{{ request.args.get('customer', '') }}">
+                </div>
+
+                <!-- Location -->
+                <div>
+                    <label for="location" class="block text-sm font-semibold text-gray-700 mb-1">Site Location</label>
+                    <input type="text" id="location" name="location" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
+                           placeholder="Enter location" value="{{ request.args.get('location', '') }}">
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-8 pt-4 border-t border-gray-100">
+                <a href="{{ url_for('summary') }}" class="px-6 py-3 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150 font-semibold shadow-md">
+                    Reset Filters
+                </a>
+                <button type="submit" class="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition duration-150 shadow-md focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transform hover:scale-105">
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+        <!-- END FILTER SECTION -->
+
+        <!-- KPI STATS CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+
+            <div class="p-6 rounded-xl card-shadow text-white gradient-revenue transform hover:scale-[1.02] transition duration-300 cursor-pointer">
+                <p class="text-sm font-medium opacity-80 mb-2">Total Revenue</p>
+                <div class="flex justify-between items-center">
+                    <p class="text-3xl font-extrabold tracking-tight">
+                        ₹ {{ "{:,.2f}".format(total_revenue) }}
+                    </p>
+                    <span class="text-4xl">💸</span>
+                </div>
+            </div>
+
+            <div class="p-6 rounded-xl card-shadow text-white gradient-cost transform hover:scale-[1.02] transition duration-300 cursor-pointer">
+                <p class="text-sm font-medium opacity-80 mb-2">Total Cost</p>
+                <div class="flex justify-between items-center">
+                    <p class="text-3xl font-extrabold tracking-tight">
+                        ₹ {{ "{:,.2f}".format(total_cost) }}
+                    </p>
+                    <span class="text-4xl">📉</span>
+                </div>
+            </div>
+
+            <div class="p-6 rounded-xl card-shadow text-white gradient-profit transform hover:scale-[1.02] transition duration-300 cursor-pointer">
+                <p class="text-sm font-medium opacity-80 mb-2">Total Net Profit</p>
+                <div class="flex justify-between items-center">
+                    <p class="mt-1 text-3xl font-extrabold tracking-tight">
+                        ₹ {{ "{:,.2f}".format(total_profit) }}
+                    </p>
+                    <span class="text-4xl">📈</span>
+                </div>
+            </div>
+
+            <div class="p-6 rounded-xl card-shadow text-white gradient-margin transform hover:scale-[1.02] transition duration-300 cursor-pointer">
+                <p class="text-sm font-medium opacity-80 mb-2">Avg. Net Margin</p>
+                <div class="flex justify-between items-center">
+                    <p class="mt-1 text-3xl font-extrabold tracking-tight">
+                        {{ "{:,.2f}".format(avg_margin) }}%
+                    </p>
+                    <span class="text-4xl">🎯</span>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stats-card bg-cost text-center">
-          <div class="stats-icon mb-2">💸</div>
-          <h5>Total Cost</h5>
-          <h3>₹{{ "{:,.2f}".format(total_cost) }}</h3>
+        <!-- END KPI CARDS -->
+
+        <!-- DAILY SUMMARY CHART -->
+        <h2 class="text-2xl font-bold text-gray-800 mb-5 mt-8 border-b border-gray-200 pb-2">Daily Financial Summary (Revenue vs. Cost Chart)</h2>
+        <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
+            <!-- Canvas container for the chart -->
+            <canvas id="dailyPerformanceChart"></canvas>
+            <p class="text-sm text-gray-500 text-center mt-4 font-semibold">
+                Chart Data is sorted in DESCENDING ORDER by Date (Latest Date appears first). **Please ensure backend dates are in YYYY-MM-DD format.**
+            </p>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stats-card bg-profit text-center">
-          <div class="stats-icon mb-2">📈</div>
-          <h5>Net Profit</h5>
-          <h3>₹{{ "{:,.2f}".format(total_profit) }}</h3>
+        <!-- END DAILY SUMMARY CHART -->
+
+
+        <h2 class="text-2xl font-bold text-gray-800 mb-5 mt-8 border-b border-gray-200 pb-2">Daily Financial Summary (Customer-Wise)</h2>
+        <!-- NOTE: Table data must be sorted in the backend if descending date order is required here. -->
+        <div class="overflow-x-auto bg-white rounded-xl shadow-2xl mb-12 border border-gray-100">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="table-header sticky top-0 z-10">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs uppercase tracking-wider rounded-tl-xl">Date</th>
+                        <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Customer</th>
+                        <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Location</th>
+                        <th class="px-4 py-3 text-right text-xs uppercase tracking-wider">Revenue (₹)</th>
+                        <th class="px-4 py-3 text-right text-xs uppercase tracking-wider">Manpower Cost (₹)</th>
+                        <th class="px-4 py-3 text-right text-xs uppercase tracking-wider">Other Cost (₹)</th>
+                        <th class="px-4 py-3 text-right text-xs uppercase tracking-wider">Total Cost (₹)</th>
+                        <th class="px-4 py-3 text-right text-xs uppercase tracking-wider">Gross Profit (₹)</th>
+                        <th class="px-4 py-3 text-right text-xs uppercase tracking-wider font-extrabold">Net Profit (₹)</th>
+                        <th class="px-4 py-3 text-right text-xs uppercase tracking-wider rounded-tr-xl">Margin (%)</th>
+                    </tr>
+                </thead>
+                <tbody class="table-body text-gray-700">
+                    {% for data in summary_data %}
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">{{ data.date }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">{{ data.customer }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">{{ data.location }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-800">{{ "{:,.2f}".format(data.revenue) }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right">{{ "{:,.2f}".format(data.manpower_cost) }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right">{{ "{:,.2f}".format(data.other_cost) }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-red-500">{{ "{:,.2f}".format(data.total_cost) }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right">{{ "{:,.2f}".format(data.gross_profit) }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-extrabold {% if data.net_profit >= 0 %}text-profit{% else %}text-loss{% endif %}">{{ "{:,.2f}".format(data.net_profit) }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold {% if data.net_profit_margin >= 0 %}text-profit{% else %}text-loss{% endif %}">{{ "{:,.2f}".format(data.net_profit_margin) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stats-card bg-margin text-center">
-          <div class="stats-icon mb-2">📊</div>
-          <h5>Avg Profit Margin</h5>
-          <h3>{{ "{:.2f}".format(avg_margin) }}%</h3>
+
+        <!-- CATEGORY BREAKDOWN HEADER AND TOGGLE BUTTON -->
+        <h2 class="text-2xl font-bold text-gray-800 mb-5 mt-8 border-b border-gray-200 pb-2 flex justify-between items-center">
+            <span>Category-Wise Breakdown (Cost/Revenue)</span>
+            <button id="toggleBreakdownBtn" onclick="toggleBreakdown()" class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition duration-150 transform hover:scale-105 shadow-md">
+                Show Breakdown
+            </button>
+        </h2>
+
+        <!-- CATEGORY BREAKDOWN TABLE - Wrapped and initially hidden -->
+        <div id="categoryBreakdownContainer" style="display: none;" class="overflow-x-auto bg-white rounded-xl shadow-2xl mb-12 border border-gray-100">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="table-header sticky top-0 z-10">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs uppercase tracking-wider rounded-tl-xl">Date</th>
+                        <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Customer</th>
+                        <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Location</th>
+                        <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Attributes</th>
+                        <th class="px-4 py-3 text-right text-xs uppercase tracking-wider font-extrabold">Cost (₹)</th>
+                        <th class="px-4 py-3 text-right text-xs uppercase tracking-wider rounded-tr-xl">Revenue (₹)</th>
+                    </tr>
+                </thead>
+                <tbody class="table-body text-gray-700">
+                    {% for item in category_breakdown_summary %}
+                    <tr>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                            {{ item.date }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            {{ item.customer }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            {{ item.location }}
+                        </td>
+                        <td class="px-4 py-3 text-sm font-semibold">
+                            {{ item.attributes }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-extrabold">
+                            {% if item.cost > 0 %}
+                                <span class="text-loss">{{ "{:,.2f}".format(item.cost) }}</span>
+                            {% else %}
+                                0.00
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold">
+                            {% if item.revenue > 0 %}
+                                <span class="text-gray-800">{{ "{:,.2f}".format(item.revenue) }}</span>
+                            {% else %}
+                                0.00
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500 text-lg bg-white">No data available for the selected filters.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-      </div>
+
     </div>
-    {% endif %}
 
-    <!-- 🧾 Customer-Wise Summary -->
-    <div class="summary-card">
-      <h4 class="mb-3 text-secondary">Customer-Wise Summary</h4>
-      {% if summary_data %}
-      {% set sorted_summary = summary_data | sort(attribute='date', reverse=True) %}
-      <div class="table-responsive">
-        <table class="table table-bordered align-middle text-center">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Customer</th>
-              <th>Location</th>
-              <th>Revenue</th>
-              <th>Manpower Cost</th>
-              <th>Other Cost</th>
-              <th>Total Cost</th>
-              <th>Gross Profit</th>
-              <th>Net Profit</th>
-              <th>Profit Margin (%)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in sorted_summary %}
-            <tr>
-              <td>{{ row.date.strftime('%Y-%m-%d') if row.date else '' }}</td>
-              <td class="text-uppercase">{{ row.customer }}</td>
-              <td>{{ row.location }}</td>
-              <td>₹{{ "{:,.2f}".format(row.revenue) }}</td>
-              <td>₹{{ "{:,.2f}".format(row.manpower_cost) }}</td>
-              <td>₹{{ "{:,.2f}".format(row.other_cost) }}</td>
-              <td>₹{{ "{:,.2f}".format(row.total_cost) }}</td>
-              <td>₹{{ "{:,.2f}".format(row.gross_profit) }}</td>
-              <td class="{% if row.net_profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
-                ₹{{ "{:,.2f}".format(row.net_profit) }}
-              </td>
-              <td class="{% if row.net_profit_margin >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
-                {{ "{:.2f}".format(row.net_profit_margin) }}%
-              </td>
-            </tr>
+    <script>
+        // Function to toggle the visibility of the breakdown table
+        function toggleBreakdown() {
+            const container = document.getElementById('categoryBreakdownContainer');
+            const button = document.getElementById('toggleBreakdownBtn');
+
+            if (container.style.display === 'none' || container.style.display === '') {
+                container.style.display = 'block';
+                button.textContent = 'Hide Breakdown';
+                button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                button.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            } else {
+                container.style.display = 'none';
+                button.textContent = 'Show Breakdown';
+                button.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                button.classList.add('bg-red-600', 'hover:bg-red-700');
+            }
+        }
+
+        /**
+         * Parses a date string into a Date object, handling standard YYYY-MM-DD format.
+         * If the date format is non-standard (e.g., DD-MM-YYYY), the backend must fix it.
+         * @param {string} dateString
+         * @returns {Date}
+         */
+        function parseDate(dateString) {
+            // Check for YYYY-MM-DD format (standard ISO format)
+            if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return new Date(dateString);
+            }
+
+            // Fallback for non-standard formats (Less reliable but provides a chance)
+            // Example: "10-11-2025" -> Try to parse as DD-MM-YYYY or MM/DD/YYYY
+            const parts = dateString.split(/[-\/]/);
+            if (parts.length === 3) {
+                 // Try parsing as YYYY, MM, DD (most reliable if parts are in this order)
+                return new Date(parts[0], parts[1] - 1, parts[2]);
+            }
+
+            // Return invalid date if parsing fails
+            return new Date('');
+        }
+
+        // --- Chart.js Initialization ---
+
+        // Extracting data from Jinja context
+        const chartData = [
+            {% for data in summary_data %}
+            {
+                date: '{{ data.date | e }}',
+                customer: '{{ data.customer | e }}',
+                revenue: {{ data.revenue | default(0) }},
+                total_cost: {{ data.total_cost | default(0) }}
+            },
             {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <div class="alert alert-info mt-3">No summary data available.</div>
-      {% endif %}
-    </div>
+        ];
 
-    <!-- ⚙️ Category-Wise Breakdown Summary -->
-    {% if breakdown_data %}
-    <div class="summary-card">
-      <h4 class="mb-3 text-secondary">Category-Wise Breakdown Summary</h4>
-      {% set sorted_data = breakdown_data | sort(attribute='date', reverse=True) %}
-      <div class="table-responsive">
-        <table class="table table-bordered align-middle text-center">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Customer</th>
-              <th>Location</th>
-              <th>Manpower</th>
-              <th>Other Cost</th>
-              <th>Revenue</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% set grouped = {} %}
-            {% for row in sorted_data %}
-              {% set key = (row.date, row.customer, row.location) %}
-              {% if key not in grouped %}
-                {% set _ = grouped.update({key: {'Manpower': 0, 'Other Cost': 0, 'Revenue': 0}}) %}
-              {% endif %}
-              {% if row.category == 'Manpower' %}
-                {% set _ = grouped[key].update({'Manpower': grouped[key]['Manpower'] + row.amount}) %}
-              {% elif row.category == 'Other Cost' %}
-                {% set _ = grouped[key].update({'Other Cost': grouped[key]['Other Cost'] + row.amount}) %}
-              {% elif row.category == 'Revenue' %}
-                {% set _ = grouped[key].update({'Revenue': grouped[key]['Revenue'] + row.amount}) %}
-              {% endif %}
-            {% endfor %}
+        // 1. Sort the data in descending order by date (Latest first)
+        chartData.sort((a, b) => {
+            // Use the dedicated parsing function for reliable date comparison
+            const dateA = parseDate(a.date);
+            const dateB = parseDate(b.date);
 
-            {% for key, values in grouped.items() | sort(reverse=True) %}
-            <tr>
-              <td>{{ key[0] }}</td>
-              <td>{{ key[1] }}</td>
-              <td>{{ key[2] }}</td>
-              <td>₹{{ "{:,.2f}".format(values['Manpower']) }}</td>
-              <td>₹{{ "{:,.2f}".format(values['Other Cost']) }}</td>
-              <td>₹{{ "{:,.2f}".format(values['Revenue']) }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
+            // Descending order (Latest date first): dateB - dateA
+            return dateB.getTime() - dateA.getTime();
+        });
 
-    <div class="footer-note">
-      Generated dynamically based on master data and daily inputs.
-    </div>
-  </div>
+        // **IMPORTANT FOR DEBUGGING:** Check the console log to ensure data is sorted correctly.
+        console.log("Chart Data (Sorted Descending - Latest First):", chartData);
 
+
+        // 2. Prepare data for Chart.js
+        const labels = chartData.map(d => `${d.date} (${d.customer.substring(0, 15)}...)`);
+        const revenueData = chartData.map(d => d.revenue);
+        const costData = chartData.map(d => d.total_cost);
+
+        // Set fixed height for canvas wrapper to ensure responsive chart size
+        const chartContainer = document.getElementById('dailyPerformanceChart').parentElement;
+        if (chartContainer) {
+             chartContainer.style.height = '400px';
+        }
+
+        if (chartData.length > 0) {
+            const ctx = document.getElementById('dailyPerformanceChart').getContext('2d');
+
+            // Custom Background Plugin for a subtle gradient
+            const gradientBg = {
+                id: 'gradientBg',
+                beforeDraw(chart, args, options) {
+                    const { ctx, chartArea: { top, bottom, left, right, width, height } } = chart;
+                    ctx.save();
+
+                    const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+                    gradient.addColorStop(0, '#ffffff');
+                    gradient.addColorStop(1, '#FEF2F2');
+
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(left, top, width, height);
+                    ctx.restore();
+                }
+            };
+
+
+            new Chart(ctx, {
+                type: 'bar',
+                plugins: [gradientBg],
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Revenue (₹)',
+                            data: revenueData,
+                            backgroundColor: '#514737', /* Dark Gray/Slate */
+                            borderColor: '#1f2937',
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Total Cost (₹)',
+                            data: costData,
+                            backgroundColor: '#B91C1C', /* Primary Red */
+                            borderColor: '#991B1B',
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            yAxisID: 'y'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1200,
+                        easing: 'easeOutQuart'
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            align: 'center',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 14,
+                                    weight: '600'
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Total Revenue vs. Total Cost by Day (Latest First)',
+                            color: '#1F2937',
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                            titleColor: '#1F2937',
+                            bodyColor: '#374151',
+                            borderColor: '#E5E7EB',
+                            borderWidth: 1,
+                            cornerRadius: 6,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        // Use Indian currency formatting
+                                        label += '₹ ' + context.parsed.y.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: false,
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            title: {
+                                display: true,
+                                text: 'Date and Customer'
+                            }
+                        },
+                        y: {
+                            stacked: false,
+                            beginAtZero: true,
+                            grid: {
+                                color: '#E5E7EB',
+                                borderDash: [5, 5]
+                            },
+                            title: {
+                                display: true,
+                                text: 'Amount (₹)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
