@@ -364,10 +364,6 @@ def delete_entry(category, index):
 
 
 
-
-
-# ✅ FIXED DAILY INPUT ROUTE
-# ✅ DAILY INPUT ROUTE — Save data to DB
 @app.route("/daily_input", methods=["GET", "POST"])
 def daily_input():
     today = datetime.date.today().isoformat()
@@ -462,7 +458,6 @@ def daily_input():
     )
 
 
-
 @app.route("/summary")
 def summary():
     import re
@@ -484,7 +479,9 @@ def summary():
         "adhoc_manpower": "Adhoc Manpower",
         "supervisor_team_lead": "Supervisor Team Lead",
         "outbound_cbm": "Outbound/CBM",
-        "storage_day_cbm": "Storage/Day/CBM"
+        "storage_day_cbm": "Storage/Day/CBM",
+        # Added White Collar to mapping for consistent field names in breakdown
+        "white_collar": "White Collar"
     }
 
     # All fields considered "Other Cost"
@@ -512,6 +509,9 @@ def summary():
 
     summary_data, breakdown_data = [], []
 
+    # Define the key for white collar once for efficiency
+    WHITE_COLLAR_KEY = normalize_key("white_collar")
+
     # ======================================================
     # 🔹 MAIN LOOP — per Date + Customer + Location
     # ======================================================
@@ -536,8 +536,10 @@ def summary():
                 input_date=date, customer_key=customer, location_key=location
             ).all()
 
+            # input_dict now holds the field_value (e.g., 21240 for white_collar)
             input_dict = {
-                normalize_key(FIELD_MAPPING.get(normalize_key(i.field_name), i.field_name)): Decimal(str(i.field_value or 0))
+                normalize_key(FIELD_MAPPING.get(normalize_key(i.field_name), i.field_name)): Decimal(
+                    str(i.field_value or 0))
                 for i in inputs
             }
 
@@ -564,18 +566,32 @@ def summary():
                     op_rate[cost_key] = Decimal(str(o.daily_cost or 0))
 
             # ======================================================
-            # 🔹 MANPOWER COST
+            # 🔹 MANPOWER COST (Modified for white_collar)
             # ======================================================
             manpower_cost = Decimal('0.0')
             for role_key, rate in man_rate.items():
                 qty = input_dict.get(role_key, 0)
+
                 if qty:
-                    amount = qty * rate
+                    if role_key == WHITE_COLLAR_KEY:
+                        # SPECIAL CASE: As requested, add the input value directly to cost.
+                        # The 'qty' here is the field_value (e.g., 21240) which is assumed to be the final cost.
+                        amount = qty
+                        # Use a rate of 1.0 for breakdown data consistency (qty * rate = amount)
+                        rate_for_breakdown = Decimal('1.0')
+                    else:
+                        # Standard calculation: Quantity * Master Rate
+                        amount = qty * rate
+                        rate_for_breakdown = rate
+
                     manpower_cost += amount
+
                     breakdown_data.append({
                         "date": date, "customer": customer, "location": location,
                         "category": "Manpower", "field": FIELD_MAPPING.get(role_key, role_key),
-                        "quantity": float(qty), "rate": float(rate), "amount": float(amount)
+                        "quantity": float(qty),
+                        "rate": float(rate_for_breakdown),
+                        "amount": float(amount)
                     })
 
             # ======================================================
@@ -647,7 +663,8 @@ def summary():
                 outbound_box_rate = op_rate.get("outbound_box", 0)
                 inbound_box_rate = op_rate.get("inbound_box", 0)
 
-                revenue = (total_orders * per_order_rate) + (outbound_boxes * outbound_box_rate) + (inbound_boxes * inbound_box_rate)
+                revenue = (total_orders * per_order_rate) + (outbound_boxes * outbound_box_rate) + (
+                        inbound_boxes * inbound_box_rate)
                 other_cost += tea + transport
 
                 for label, qty, rate in [
@@ -720,6 +737,55 @@ def summary():
                 "net_profit_margin": float(round(margin, 2))
             })
 
+    # -----------------------------------------------------------------
+    # ✅ FIX: SORT summary_data BY DATE IN DESCENDING ORDER (Latest first)
+    # -----------------------------------------------------------------
+    # Assuming 'date' is in YYYY-MM-DD format, string sort works correctly.
+    summary_data.sort(key=lambda x: x['date'], reverse=True)
+
+    # ======================================================
+    # 🌟 POST-PROCESSING: CATEGORY-WISE BREAKDOWN SUMMARY
+    # ======================================================
+    category_summary = {}
+
+    for item in breakdown_data:
+        # Key combines the identifier fields and the specific attribute (field)
+        key = (item['date'], item['customer'], item['location'], item['field'])
+
+        if key not in category_summary:
+            category_summary[key] = {
+                "date": item['date'],
+                "customer": item['customer'],
+                "location": item['location'],
+                "attributes": item['field'],
+                "cost": 0.0,
+                "revenue": 0.0
+            }
+
+        amount = item['amount']
+
+        # Check if the breakdown item belongs to Cost or Revenue
+        if item['category'] in ["Manpower", "Other Cost"]:
+            category_summary[key]["cost"] += amount
+        elif item['category'] == "Revenue":
+            category_summary[key]["revenue"] += amount
+
+    # Convert the dictionary values back to a list
+    category_breakdown_summary = [
+        {
+            **data,
+            # Ensure final output is float with 2 decimal places
+            "cost": round(data["cost"], 2),
+            "revenue": round(data["revenue"], 2)
+        }
+        for data in category_summary.values()
+    ]
+
+    # -----------------------------------------------------------------
+    # ✅ FIX: SORT category_breakdown_summary BY DATE IN DESCENDING ORDER
+    # -----------------------------------------------------------------
+    category_breakdown_summary.sort(key=lambda x: x['date'], reverse=True)
+
     # ====================== TOTALS ======================
     total_revenue = sum(i["revenue"] for i in summary_data)
     total_cost = sum(i["total_cost"] for i in summary_data)
@@ -729,14 +795,13 @@ def summary():
     return render_template(
         "summary.html",
         summary_data=summary_data,
-        breakdown_data=breakdown_data,
+        breakdown_data=breakdown_data,  # Detailed original breakdown (Quantity/Rate based)
+        category_breakdown_summary=category_breakdown_summary,  # New summary (Cost/Revenue based)
         total_revenue=round(float(total_revenue), 2),
         total_cost=round(float(total_cost), 2),
         total_profit=round(float(total_profit), 2),
         avg_margin=round(float(avg_margin), 2)
     )
-
-
 
 @app.route("/config")
 def config():
