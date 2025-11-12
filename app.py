@@ -246,7 +246,8 @@ def master():
                 role_name = request.form.get("role_name")
                 monthly_salary = float(request.form.get("monthly_salary") or 0)
                 ot_cost = float(request.form.get("ot_cost") or 0)
-                daily_cost = round(monthly_salary / 30, 2)
+
+                daily_cost = round(monthly_salary / 26, 2)
 
                 entry = MasterManpower(
                     customer=customer,
@@ -501,7 +502,7 @@ def summary():
     # Fields that should directly add into Manpower (not rate-based)
     DIRECT_MANPOWER_FIELDS = [
         "white_collar", "supervisor_team_lead",
-        "supervisor_ex_off_roll", "supervisor_ex_off_roll_deo"
+        "supervisor_ex_off_roll", "supervisor_ex_off_roll_deo","supervisor_deo"
     ]
     DIRECT_MANPOWER_NORM = [normalize_key(f) for f in DIRECT_MANPOWER_FIELDS]
 
