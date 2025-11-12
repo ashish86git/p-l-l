@@ -464,8 +464,10 @@ def summary():
     from decimal import Decimal
 
     def normalize_key(s):
+        """Normalize key for consistent comparison."""
         return re.sub(r'[^a-z0-9]', '', (s or "").lower().strip())
 
+    # Field display mapping
     FIELD_MAPPING = {
         "house_keeping": "House Keeping",
         "security_guard": "Security Guard",
@@ -476,6 +478,8 @@ def summary():
         "electrician": "Electrician",
         "adhoc_manpower": "Adhoc Manpower",
         "supervisor_team_lead": "Supervisor Team Lead",
+        "supervisor_ex_off_roll": "Supervisor Ex Off Roll",
+        "supervisor_ex_off_roll_deo": "Supervisor Ex Off Roll DEO",
         "outbound_cbm": "Outbound/CBM",
         "storage_day_cbm": "Storage/Day/CBM",
         "white_collar": "White Collar",
@@ -484,6 +488,7 @@ def summary():
         "overtime_blue_collar_loading_unloading_blue_collar": "Overtime Blue Collar Loading Unloading Blue Collar",
     }
 
+    # Fields that are always part of "Other Cost"
     OTHER_COST_FIELDS = [
         "tea", "water", "internet", "wms", "stationery", "electricity",
         "electricity_sub_meter", "diesel", "staff_welfare", "convence",
@@ -493,25 +498,37 @@ def summary():
     ]
     OTHER_COST_FIELDS_NORM = [normalize_key(f) for f in OTHER_COST_FIELDS]
 
+    # Fields that should directly add into Manpower (not rate-based)
+    DIRECT_MANPOWER_FIELDS = [
+        "white_collar", "supervisor_team_lead",
+        "supervisor_ex_off_roll", "supervisor_ex_off_roll_deo"
+    ]
+    DIRECT_MANPOWER_NORM = [normalize_key(f) for f in DIRECT_MANPOWER_FIELDS]
+
+    # ------------------ Filters ------------------
     start_date = request.args.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip()
     customer_filter = normalize_key(request.args.get('customer', ''))
     location_filter = normalize_key(request.args.get('location', ''))
 
+    # Get all master customer-location pairs
     master_groups = db.session.query(
-        MasterOperational.customer,
-        MasterOperational.location
+        MasterOperational.customer, MasterOperational.location
     ).distinct().all()
+
+    # Get all available dates
     all_dates = [r[0] for r in db.session.query(DailyInputData.input_date).distinct().all()]
 
     summary_data, breakdown_data = [], []
 
+    # ------------------ MAIN LOOP ------------------
     for date in all_dates:
         for mg in master_groups:
             customer = (mg.customer or "").strip()
             location = (mg.location or "").strip()
             cust_norm, loc_norm = normalize_key(customer), normalize_key(location)
 
+            # Filter by date and customer/location
             if start_date and str(date) < start_date:
                 continue
             if end_date and str(date) > end_date:
@@ -521,175 +538,79 @@ def summary():
             if location_filter and location_filter not in loc_norm:
                 continue
 
+            # Load daily inputs
             inputs = DailyInputData.query.filter_by(
                 input_date=date, customer_key=customer, location_key=location
             ).all()
+            if not inputs:
+                continue
 
+            # Convert to dict {field: value}
             input_dict = {
                 normalize_key(FIELD_MAPPING.get(normalize_key(i.field_name), i.field_name)): Decimal(str(i.field_value or 0))
                 for i in inputs
             }
-            if not input_dict:
-                continue
 
+            # Load master data
             manpower_master = MasterManpower.query.filter_by(customer=customer, location=location).all()
             operational_master = MasterOperational.query.filter_by(customer=customer, location=location).all()
 
-            man_rate, ot_rate, op_cost, op_rate = {}, {}, {}, {}
+            # Build rate dictionaries
+            man_rate, op_cost, op_rate = {}, {}, {}
             for m in manpower_master:
-                role_key = normalize_key(FIELD_MAPPING.get(normalize_key(m.role_name), m.role_name))
-                man_rate[role_key] = Decimal(str(m.daily_cost or 0))
-
+                key = normalize_key(FIELD_MAPPING.get(normalize_key(m.role_name), m.role_name))
+                man_rate[key] = Decimal(str(m.daily_cost or 0))
             for o in operational_master:
-                cost_key = normalize_key(FIELD_MAPPING.get(normalize_key(o.cost_type), o.cost_type))
-                o_type = (o.type_ or "").lower()
-                if o_type == "cost":
-                    op_cost[cost_key] = Decimal(str(o.daily_cost or 0))
-                elif o_type == "revenue":
-                    op_rate[cost_key] = Decimal(str(o.daily_cost or 0))
-                elif o_type == "ot":
-                    ot_rate[cost_key] = Decimal(str(o.daily_cost or 0))
+                key = normalize_key(FIELD_MAPPING.get(normalize_key(o.cost_type), o.cost_type))
+                if (o.type_ or "").lower() == "cost":
+                    op_cost[key] = Decimal(str(o.daily_cost or 0))
+                elif (o.type_ or "").lower() == "revenue":
+                    op_rate[key] = Decimal(str(o.daily_cost or 0))
 
-            # ======================================================
-            # 🔹 MANPOWER COST (Fixed)
-            # ======================================================
-            manpower_cost = Decimal('0.0')
-            for role_key, rate in man_rate.items():
-                qty = input_dict.get(role_key, 0)
+            # ------------------ MANPOWER COST ------------------
+            manpower_cost = Decimal("0.0")
+
+            # Add rate-based manpower cost
+            for role, rate in man_rate.items():
+                qty = input_dict.get(role, 0)
                 if qty:
                     amt = qty * rate
                     manpower_cost += amt
                     breakdown_data.append({
                         "date": date, "customer": customer, "location": location,
-                        "category": "Manpower", "field": FIELD_MAPPING.get(role_key, role_key),
+                        "category": "Manpower", "field": FIELD_MAPPING.get(role, role),
                         "quantity": float(qty), "rate": float(rate), "amount": float(amt)
                     })
 
-            # ✅ Force add white_collar + supervisor_team_lead (direct values)
-            for extra_field in ["white_collar", "supervisor_team_lead"]:
-                norm_field = normalize_key(extra_field)
-                val = input_dict.get(norm_field, 0)
+            # Add direct manpower (input amount directly)
+            for field in DIRECT_MANPOWER_NORM:
+                val = input_dict.get(field, 0)
                 if val:
                     manpower_cost += val
                     breakdown_data.append({
                         "date": date, "customer": customer, "location": location,
                         "category": "Manpower",
-                        "field": FIELD_MAPPING.get(norm_field, extra_field),
-                        "quantity": float(val),
-                        "rate": 0,
-                        "amount": float(val)
+                        "field": FIELD_MAPPING.get(field, field),
+                        "quantity": float(val), "rate": 0.0, "amount": float(val)
                     })
 
-            # ======================================================
-            # 🔹 OVERTIME + ADHOC MANPOWER
-            # ======================================================
-            dual_fields = [
-                "adhoc_manpower", "overtime_supervisor",
-                "overtime_blue_collar", "overtime_blue_collar_loading_unloading_blue_collar"
-            ]
-            for field_key in dual_fields:
-                key_norm = normalize_key(field_key)
-                qty = input_dict.get(key_norm, 0)
-                if qty:
-                    if key_norm in op_cost or key_norm in ot_rate:
-                        rate = op_cost.get(key_norm, ot_rate.get(key_norm, Decimal("0")))
-                        amt = qty * rate
-                        manpower_cost += amt
-                        breakdown_data.append({
-                            "date": date, "customer": customer, "location": location,
-                            "category": "Manpower", "field": FIELD_MAPPING.get(key_norm, key_norm),
-                            "quantity": float(qty), "rate": float(rate), "amount": float(amt)
-                        })
-                    if key_norm in op_rate:
-                        rate = op_rate[key_norm]
-                        amt = qty * rate
-                        breakdown_data.append({
-                            "date": date, "customer": customer, "location": location,
-                            "category": "Revenue", "field": FIELD_MAPPING.get(key_norm, key_norm),
-                            "quantity": float(qty), "rate": float(rate), "amount": float(amt)
-                        })
-
-            # ======================================================
-            # 🔹 OTHER COST
-            # ======================================================
-            other_cost = Decimal('0.0')
+            # ------------------ OTHER COST ------------------
+            other_cost = Decimal("0.0")
             for key, val in input_dict.items():
-                key_norm = normalize_key(key)
-                if key_norm in OTHER_COST_FIELDS_NORM:
+                if normalize_key(key) in OTHER_COST_FIELDS_NORM and val:
                     other_cost += val
                     breakdown_data.append({
                         "date": date, "customer": customer, "location": location,
-                        "category": "Other Cost", "field": FIELD_MAPPING.get(key_norm, key),
-                        "quantity": float(val), "rate": 0, "amount": float(val)
+                        "category": "Other Cost", "field": FIELD_MAPPING.get(key, key),
+                        "quantity": float(val), "rate": 0.0, "amount": float(val)
                     })
 
-            # ======================================================
-            # 🔹 REVENUE LOGIC
-            # ======================================================
-            revenue = Decimal('0.0')
+            # ------------------ REVENUE ------------------
+            revenue = Decimal("0.0")
 
+            # Lifelong special case
             if "lifelong" in cust_norm:
-                for field_key, rate in op_rate.items():
-                    qty = input_dict.get(field_key, 0)
-                    if qty:
-                        amt = qty * rate
-                        revenue += amt
-                        breakdown_data.append({
-                            "date": date, "customer": customer, "location": location,
-                            "category": "Revenue", "field": FIELD_MAPPING.get(field_key, field_key),
-                            "quantity": float(qty), "rate": float(rate), "amount": float(amt)
-                        })
-
-                # ✅ Tea + Staff Welfare → both Revenue + Other Cost
-                # ✅ Tea + Staff Welfare → both Revenue + Other Cost (no duplication)
-                for special in ["tea", "staff_welfare"]:
-                    norm_field = normalize_key(special)
-
-                    # ✅ check both raw and normalized forms
-                    val = input_dict.get(norm_field, 0) or input_dict.get(special, 0)
-                    if val:
-                        # ✅ safely find rate in op_rate (check both raw + normalized)
-                        rate = (
-                                op_rate.get(norm_field)
-                                or op_rate.get(special)
-                                or Decimal("1.0")
-                        )
-                        amt = val * rate
-
-                        # ✅ Revenue Add
-                        revenue += amt
-                        breakdown_data.append({
-                            "date": date, "customer": customer, "location": location,
-                            "category": "Revenue",
-                            "field": FIELD_MAPPING.get(norm_field, special),
-                            "quantity": float(val),
-                            "rate": float(rate),
-                            "amount": float(amt)
-                        })
-
-                        # ✅ Add to Other Cost only once (avoid double count)
-                        already_added = any(
-                            bd['category'] == 'Other Cost'
-                            and normalize_key(bd['field']) == norm_field
-                            and bd['customer'] == customer
-                            and bd['location'] == location
-                            and bd['date'] == date
-                            for bd in breakdown_data
-                        )
-                        if not already_added:
-                            other_cost += amt
-                            breakdown_data.append({
-                                "date": date, "customer": customer, "location": location,
-                                "category": "Other Cost",
-                                "field": FIELD_MAPPING.get(norm_field, special),
-                                "quantity": float(val),
-                                "rate": float(rate),
-                                "amount": float(amt)
-                            })
-
-
-
-            elif "spario" in cust_norm:
+                # Normal revenue calculation
                 for field, rate in op_rate.items():
                     qty = input_dict.get(field, 0)
                     if qty:
@@ -697,316 +618,38 @@ def summary():
                         revenue += amt
                         breakdown_data.append({
                             "date": date, "customer": customer, "location": location,
-                            "category": "Revenue", "field": field.title(),
+                            "category": "Revenue",
+                            "field": FIELD_MAPPING.get(field, field),
                             "quantity": float(qty), "rate": float(rate), "amount": float(amt)
                         })
 
-
-
-
-
-
-
-
-
-
-            elif "kothari" in cust_norm and "gurgaon" in loc_norm:
-
-                # Reset all categories
-
-                revenue = Decimal("0.0")
-
-                manpower_cost = Decimal("0.0")
-
-                other_cost = Decimal("0.0")
-
-                # ==========================================================
-
-                # 🔹 1️⃣ Revenue Calculation (excluding manpower fields)
-
-                # ==========================================================
-
-                manpower_exclude = [
-
-                    "whitecollar", "supervisordeo",
-
-                    "bluecollarrk", "bluecollarkbr", "bluecollardrona",
-
-                    "loadingjeevdhani", "loadingkbr", "adhocmanpower",
-
-                    "housekeeping", "securityguardfemale", "securityguard",
-
-                    "securitysupervisor", "supervisorteamlead",
-
-                    "tea", "staffwelfare"
-
-                ]
-
-                for field_key, rate in op_rate.items():
-
-                    norm_field = normalize_key(field_key)
-
-                    val = input_dict.get(norm_field, 0)
-
-                    # Skip manpower-related fields
-
-                    if norm_field in manpower_exclude:
-                        continue
-
-                    if val and Decimal(rate) != 0:
-                        amt = Decimal(val) * Decimal(rate)
-
-                        revenue += amt
-
-                        breakdown_data.append({
-
-                            "date": date,
-
-                            "customer": customer,
-
-                            "location": location,
-
-                            "category": "Revenue",
-
-                            "field": FIELD_MAPPING.get(norm_field, field_key),
-
-                            "quantity": float(val),
-
-                            "rate": float(rate),
-
-                            "amount": float(amt)
-
-                        })
-
-                # ==========================================================
-
-                # 🔹 2️⃣ Manpower Cost (direct + rate-based + tea/staff_welfare)
-
-                # ==========================================================
-
-                manpower_fields = [
-
-                    "blue_collar_rk", "blue_collar_kbr", "blue_collar_drona",
-
-                    "loading_jeevdhani", "loading_kbr",
-
-                    "supervisor_deo", "adhoc_manpower",
-
-                    "housekeeping", "security_guard_female", "security_guard",
-
-                    "security_supervisor", "white_collar", "supervisor_team_lead",
-
-                    "tea", "staff_welfare"
-
-                ]
-
-                for field in manpower_fields:
-
-                    norm_field = normalize_key(field)
-
-                    val = input_dict.get(norm_field, 0)
-
-                    if not val or Decimal(val) == 0:
-                        continue
-
-                    # Direct manpower values (no rate)
-
-                    if norm_field in ["whitecollar", "supervisordeo", "tea", "staffwelfare"]:
-
-                        amt = Decimal(val)
-
-                        manpower_cost += amt
-
-                        breakdown_data.append({
-
-                            "date": date,
-
-                            "customer": customer,
-
-                            "location": location,
-
-                            "category": "Manpower Cost",
-
-                            "field": FIELD_MAPPING.get(norm_field, field),
-
-                            "quantity": float(val),
-
-                            "rate": 1.0,
-
-                            "amount": float(amt)
-
-                        })
-
-
-                    else:
-
-                        # Rate-based manpower cost (from operational master)
-
-                        rate = Decimal(op_rate.get(norm_field, 0))
-
-                        amt = Decimal(val) * rate
-
-                        manpower_cost += amt
-
-                        breakdown_data.append({
-
-                            "date": date,
-
-                            "customer": customer,
-
-                            "location": location,
-
-                            "category": "Manpower Cost",
-
-                            "field": FIELD_MAPPING.get(norm_field, field),
-
-                            "quantity": float(val),
-
-                            "rate": float(rate),
-
-                            "amount": float(amt)
-
-                        })
-
-                # ==========================================================
-
-                # 🔹 3️⃣ Other Cost (excluding tea & staff_welfare)
-
-                # ==========================================================
-
-                other_cost_fields = [
-
-                    "water", "stationery", "electricity", "electricity_sub_meter",
-
-                    "diesel", "convence", "ho_cost", "traveling_cost",
-
-                    "hra", "capex", "hk_materials", "other_expenses",
-
-                    "rr_cost", "rental",
-
-                    "roll_100x150", "roll_75x50", "roll_25x50", "a4_paper", "ribbon_25x50"
-
-                ]
-
-                for field in other_cost_fields:
-
-                    norm_field = normalize_key(field)
-
-                    val = input_dict.get(norm_field, 0)
-
-                    if val and Decimal(val) != 0:
-                        rate = Decimal(op_rate.get(norm_field, 1.0))
-
-                        amt = Decimal(val) * rate
-
-                        other_cost += amt
-
-                        breakdown_data.append({
-
-                            "date": date,
-
-                            "customer": customer,
-
-                            "location": location,
-
-                            "category": "Other Cost",
-
-                            "field": FIELD_MAPPING.get(norm_field, field),
-
-                            "quantity": float(val),
-
-                            "rate": float(rate),
-
-                            "amount": float(amt)
-
-                        })
-
-                # ==========================================================
-
-                # 🔹 4️⃣ Order-Based Revenue (Per Order, Outbound, Inbound)
-
-                # ==========================================================
-
-                total_orders = input_dict.get("orders", 0)
-
-                outbound_boxes = input_dict.get("outboundbox", 0)
-
-                inbound_boxes = input_dict.get("inboundbox", 0)
-
-                order_fields = [
-
-                    ("Per Order", total_orders, "perorder"),
-
-                    ("Outbound Box", outbound_boxes, "outbound_box"),
-
-                    ("Inbound Box", inbound_boxes, "inbound_box"),
-
-                ]
-
-                for label, qty, key in order_fields:
-
-                    if qty and Decimal(qty) != 0:
-                        rate = Decimal(op_rate.get(key, 0))
-
-                        amt = Decimal(qty) * rate
-
-                        revenue += amt
-
-                        breakdown_data.append({
-
-                            "date": date,
-
-                            "customer": customer,
-
-                            "location": location,
-
-                            "category": "Revenue",
-
-                            "field": label,
-
-                            "quantity": float(qty),
-
-                            "rate": float(rate),
-
-                            "amount": float(amt)
-
-                        })
-
-
-            elif "kothari" in cust_norm and "hyderabad" in loc_norm:
-                rev_fields = {
-                    "grn_item": "inward_rate_item",
-                    "rtv_item": "rgp_return",
-                    "gate_pass_pair": "gate_pass_item",
-                    "ob_b2c_pair": "b2c_outward_rate_item",
-                    "returns": "rto_rate_item",
-                    "claims": "claim_rate_item",
-                    "storage_footwear": "footwear"
-                }
-                for field, rate_key in rev_fields.items():
-                    qty = input_dict.get(field, 0)
-                    rate = op_rate.get(rate_key, 0)
-                    if qty:
-                        amt = qty * rate
-                        revenue += amt
+                # Add Tea + Staff Welfare also in revenue
+                for special in ["tea", "staff_welfare"]:
+                    val = input_dict.get(normalize_key(special), 0)
+                    if val:
+                        revenue += val
                         breakdown_data.append({
                             "date": date, "customer": customer, "location": location,
-                            "category": "Revenue", "field": field.replace('_', ' ').title(),
-                            "quantity": float(qty), "rate": float(rate), "amount": float(amt)
+                            "category": "Revenue",
+                            "field": FIELD_MAPPING.get(special, special),
+                            "quantity": float(val), "rate": 0.0, "amount": float(val)
                         })
+
+            # Other customers - normal revenue
             else:
-                for cost_type, rate in op_rate.items():
-                    qty = input_dict.get(cost_type, 0)
+                for field, rate in op_rate.items():
+                    qty = input_dict.get(field, 0)
                     if qty:
                         amt = qty * rate
                         revenue += amt
                         breakdown_data.append({
                             "date": date, "customer": customer, "location": location,
-                            "category": "Revenue", "field": cost_type.title(),
+                            "category": "Revenue",
+                            "field": FIELD_MAPPING.get(field, field),
                             "quantity": float(qty), "rate": float(rate), "amount": float(amt)
                         })
 
-            # ======================================================
+            # ------------------ FINAL CALCULATIONS ------------------
             total_cost = manpower_cost + other_cost
             gross_profit = revenue - manpower_cost
             net_profit = revenue - total_cost
@@ -1023,8 +666,7 @@ def summary():
                 "net_profit_margin": float(round(margin, 2))
             })
 
-    # 🔹 Category Breakdown Summary
-    summary_data.sort(key=lambda x: x['date'], reverse=True)
+    # ------------------ CATEGORY SUMMARY ------------------
     category_summary = {}
     for item in breakdown_data:
         key = (item['date'], item['customer'], item['location'], item['field'])
@@ -1033,32 +675,32 @@ def summary():
                 "date": item['date'], "customer": item['customer'], "location": item['location'],
                 "attributes": item['field'], "cost": 0.0, "revenue": 0.0
             }
-
         if item['category'] in ["Manpower", "Other Cost"]:
             category_summary[key]["cost"] += item['amount']
         elif item['category'] == "Revenue":
             category_summary[key]["revenue"] += item['amount']
 
     category_breakdown_summary = [
-        {**data, "cost": round(data["cost"], 2), "revenue": round(data["revenue"], 2)}
-        for data in category_summary.values()
+        {**v, "cost": round(v["cost"], 2), "revenue": round(v["revenue"], 2)}
+        for v in category_summary.values()
     ]
-    category_breakdown_summary.sort(key=lambda x: x['date'], reverse=True)
 
+    # ------------------ TOTALS ------------------
     total_revenue = sum(i["revenue"] for i in summary_data)
     total_cost = sum(i["total_cost"] for i in summary_data)
     total_profit = sum(i["net_profit"] for i in summary_data)
     avg_margin = (total_profit / total_revenue * 100) if total_revenue else 0
 
+    # ------------------ RENDER ------------------
     return render_template(
         "summary.html",
-        summary_data=summary_data,
+        summary_data=sorted(summary_data, key=lambda x: x['date'], reverse=True),
         breakdown_data=breakdown_data,
-        category_breakdown_summary=category_breakdown_summary,
-        total_revenue=round(float(total_revenue), 2),
-        total_cost=round(float(total_cost), 2),
-        total_profit=round(float(total_profit), 2),
-        avg_margin=round(float(avg_margin), 2)
+        category_breakdown_summary=sorted(category_breakdown_summary, key=lambda x: x['date'], reverse=True),
+        total_revenue=round(total_revenue, 2),
+        total_cost=round(total_cost, 2),
+        total_profit=round(total_profit, 2),
+        avg_margin=round(avg_margin, 2)
     )
 
 
