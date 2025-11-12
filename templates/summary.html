@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Financial Summary Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Chart.js for graphing functionality -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         /* --- CUSTOM THEME STYLES --- */
@@ -34,7 +33,7 @@
         .text-profit { color: var(--green-profit); }
         .text-loss { color: var(--secondary-red); }
 
-        /* Custom Tailwind focus class for inputs */
+        /* Custom Tailwind focus class for inputs and selects */
         .input-focus-red:focus {
             border-color: var(--primary-red);
             box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.3); /* Ring color */
@@ -64,37 +63,32 @@
             💰 Financial Performance Dashboard
         </h1>
 
-        <!-- FILTER SECTION -->
         <form method="get" action="{{ url_for('summary') }}" class="bg-white p-7 rounded-xl card-shadow mb-10 border-l-4 border-red-600 transition duration-300 hover:shadow-lg">
             <h3 class="text-2xl font-bold text-gray-800 mb-5">Filter Analysis Period</h3>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
 
-                <!-- From Date -->
                 <div>
                     <label for="start_date" class="block text-sm font-semibold text-gray-700 mb-1">From Date</label>
                     <input type="date" id="start_date" name="start_date" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
                            value="{{ request.args.get('start_date', '') }}">
                 </div>
 
-                <!-- To Date -->
                 <div>
                     <label for="end_date" class="block text-sm font-semibold text-gray-700 mb-1">To Date</label>
                     <input type="date" id="end_date" name="end_date" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
                            value="{{ request.args.get('end_date', '') }}">
                 </div>
 
-                <!-- Customer -->
                 <div>
                     <label for="customer" class="block text-sm font-semibold text-gray-700 mb-1">Customer Name</label>
-                    <input type="text" id="customer" name="customer" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
-                           placeholder="Enter customer" value="{{ request.args.get('customer', '') }}">
+                    <select id="customer" name="customer" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red appearance-none bg-white">
+                        </select>
                 </div>
 
-                <!-- Location -->
                 <div>
                     <label for="location" class="block text-sm font-semibold text-gray-700 mb-1">Site Location</label>
-                    <input type="text" id="location" name="location" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
-                           placeholder="Enter location" value="{{ request.args.get('location', '') }}">
+                    <select id="location" name="location" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red appearance-none bg-white">
+                        </select>
                 </div>
             </div>
 
@@ -107,9 +101,6 @@
                 </button>
             </div>
         </form>
-        <!-- END FILTER SECTION -->
-
-        <!-- KPI STATS CARDS -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
 
             <div class="p-6 rounded-xl card-shadow text-white gradient-revenue transform hover:scale-[1.02] transition duration-300 cursor-pointer">
@@ -152,22 +143,14 @@
                 </div>
             </div>
         </div>
-        <!-- END KPI CARDS -->
-
-        <!-- DAILY SUMMARY CHART -->
         <h2 class="text-2xl font-bold text-gray-800 mb-5 mt-8 border-b border-gray-200 pb-2">Daily Financial Summary (Revenue vs. Cost Chart)</h2>
         <div class="bg-white p-6 rounded-xl shadow-2xl mb-8">
-            <!-- Canvas container for the chart -->
             <canvas id="dailyPerformanceChart"></canvas>
             <p class="text-sm text-gray-500 text-center mt-4 font-semibold">
                 Chart Data is sorted in DESCENDING ORDER by Date (Latest Date appears first). **Please ensure backend dates are in YYYY-MM-DD format.**
             </p>
         </div>
-        <!-- END DAILY SUMMARY CHART -->
-
-
         <h2 class="text-2xl font-bold text-gray-800 mb-5 mt-8 border-b border-gray-200 pb-2">Daily Financial Summary (Customer-Wise)</h2>
-        <!-- NOTE: Table data must be sorted in the backend if descending date order is required here. -->
         <div class="overflow-x-auto bg-white rounded-xl shadow-2xl mb-12 border border-gray-100">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="table-header sticky top-0 z-10">
@@ -203,7 +186,6 @@
             </table>
         </div>
 
-        <!-- CATEGORY BREAKDOWN HEADER AND TOGGLE BUTTON -->
         <h2 class="text-2xl font-bold text-gray-800 mb-5 mt-8 border-b border-gray-200 pb-2 flex justify-between items-center">
             <span>Category-Wise Breakdown (Cost/Revenue)</span>
             <button id="toggleBreakdownBtn" onclick="toggleBreakdown()" class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition duration-150 transform hover:scale-105 shadow-md">
@@ -211,7 +193,6 @@
             </button>
         </h2>
 
-        <!-- CATEGORY BREAKDOWN TABLE - Wrapped and initially hidden -->
         <div id="categoryBreakdownContainer" style="display: none;" class="overflow-x-auto bg-white rounded-xl shadow-2xl mb-12 border border-gray-100">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="table-header sticky top-0 z-10">
@@ -316,11 +297,58 @@
             {
                 date: '{{ data.date | e }}',
                 customer: '{{ data.customer | e }}',
+                location: '{{ data.location | e }}', // Location is now also extracted
                 revenue: {{ data.revenue | default(0) }},
                 total_cost: {{ data.total_cost | default(0) }}
             },
             {% endfor %}
         ];
+
+        // --- Dynamic Filter Population using JavaScript ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const customerSelect = document.getElementById('customer');
+            const locationSelect = document.getElementById('location');
+            const currentCustomer = new URLSearchParams(window.location.search).get('customer') || '';
+            const currentLocation = new URLSearchParams(window.location.search).get('location') || '';
+
+            // 1. Get unique values
+            const uniqueCustomers = [...new Set(chartData.map(item => item.customer))].filter(c => c); // Filter out empty strings
+            const uniqueLocations = [...new Set(chartData.map(item => item.location))].filter(l => l); // Filter out empty strings
+
+            // 2. Function to populate dropdown
+            const populateDropdown = (selectElement, uniqueList, currentValue, defaultLabel) => {
+                // Clear existing options
+                selectElement.innerHTML = '';
+
+                // Add default "All" option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = defaultLabel;
+                if (currentValue === '') {
+                    defaultOption.selected = true;
+                }
+                selectElement.appendChild(defaultOption);
+
+                // Add unique values
+                uniqueList.sort().forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    if (value === currentValue) {
+                        option.selected = true;
+                    }
+                    selectElement.appendChild(option);
+                });
+            };
+
+            // 3. Populate Customer Dropdown
+            populateDropdown(customerSelect, uniqueCustomers, currentCustomer, 'All Customers');
+
+            // 4. Populate Location Dropdown
+            populateDropdown(locationSelect, uniqueLocations, currentLocation, 'All Locations');
+        });
+        // --- END Dynamic Filter Population ---
+
 
         // 1. Sort the data in descending order by date (Latest first)
         chartData.sort((a, b) => {
