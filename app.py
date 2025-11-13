@@ -247,7 +247,12 @@ def master():
                 monthly_salary = float(request.form.get("monthly_salary") or 0)
                 ot_cost = float(request.form.get("ot_cost") or 0)
 
-                daily_cost = round(monthly_salary / 26, 2)
+                if category == "manpower":
+                    role_name = request.form.get("role_name")
+                    monthly_salary = float(request.form.get("monthly_salary") or 0)
+                    ot_cost = float(request.form.get("ot_cost") or 0)
+
+                    daily_cost = round(monthly_salary / (30 if "security_guard" in role_name.lower() else 26), 2)
 
                 entry = MasterManpower(
                     customer=customer,
@@ -494,7 +499,7 @@ def summary():
         "tea", "water", "internet", "wms", "stationery", "electricity",
         "electricity_sub_meter", "diesel", "staff_welfare", "convence",
         "ho_cost", "traveling_cost", "hra", "capex", "hk_materials",
-        "other_expenses", "rr_cost", "rental",
+        "other_expenses", "rr_cost", "rental", "pen_pencil", "cartridge", "bubble_wrap", "stretch_wrap"
         "roll_100x150", "roll_75x50", "roll_25x50", "a4_paper", "ribbon_25x50"
     ]
     OTHER_COST_FIELDS_NORM = [normalize_key(f) for f in OTHER_COST_FIELDS]
@@ -502,7 +507,7 @@ def summary():
     # Fields that should directly add into Manpower (not rate-based)
     DIRECT_MANPOWER_FIELDS = [
         "white_collar", "supervisor_team_lead",
-        "supervisor_ex_off_roll", "supervisor_ex_off_roll_deo","supervisor_deo"
+        "supervisor_ex_off_roll", "supervisor_ex_off_roll_deo","supervisor_deo", "supervisor_deo"
     ]
     DIRECT_MANPOWER_NORM = [normalize_key(f) for f in DIRECT_MANPOWER_FIELDS]
 
