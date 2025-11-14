@@ -507,7 +507,7 @@ def summary():
     # Fields that should directly add into Manpower (not rate-based)
     DIRECT_MANPOWER_FIELDS = [
         "white_collar", "supervisor_team_lead",
-        "supervisor_ex_off_roll", "supervisor_ex_off_roll_deo","supervisor_deo", "supervisor_deo"
+        "supervisor_ex_off_roll", "supervisor_ex_off_roll_deo","supervisor_deo"
     ]
     DIRECT_MANPOWER_NORM = [normalize_key(f) for f in DIRECT_MANPOWER_FIELDS]
 
@@ -630,7 +630,7 @@ def summary():
                         })
 
                 # Add Tea + Staff Welfare also in revenue
-                for special in ["tea", "staff_welfare"]:
+                for special in ["tea", "staff_welfare","roll_100x150","roll_75x50","roll_25x50","a4_paper","pen_pencil","cartridge","bubble_wrap","stretch_wrap"]:
                     val = input_dict.get(normalize_key(special), 0)
                     if val:
                         revenue += val
