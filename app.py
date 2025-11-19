@@ -638,20 +638,24 @@ def summary():
             # ================================
             # 🔥 LIFELONG SPECIAL HANDLING
             # ================================
+            # ================================
             if is_lifelong:
-                # Handle special items once (revenue + other cost)
+
+                # Handle special revenue + other cost items (no change)
                 for item in LIFELONG_SPECIAL_ITEMS:
                     key = normalize_key(item)
                     val = input_dict.get(key, Decimal("0"))
+
                     if val:
-                        # Add revenue
+                        # Revenue add
                         revenue += val
                         breakdown_data.append({
                             "date": date, "customer": customer, "location": location,
                             "category": "Revenue", "field": FIELD_MAPPING.get(item, item),
                             "quantity": float(val), "rate": 0.0, "amount": float(val)
                         })
-                        # Add other cost (single entry)
+
+                        # Other cost add
                         other_cost += val
                         breakdown_data.append({
                             "date": date, "customer": customer, "location": location,
@@ -659,29 +663,56 @@ def summary():
                             "quantity": float(val), "rate": 0.0, "amount": float(val)
                         })
 
-                # OVERTIME fields — use robust lookup for rate (op_rate keys may be normalized)
+                # -----------------------------------------------
+                # OVERTIME / ADHOC manpower fields
+                # -----------------------------------------------
                 overtime_master_keys = [
-                    "overtime_supervisor", "adhoc_manpower",
+                    "overtime_supervisor",
+                    "adhoc_manpower",
                     "overtime_blue_collar",
                     "overtime_blue_collar_loading_unloading_blue_collar"
                 ]
+
                 for master_key in overtime_master_keys:
-                    # input key may come as normalized without underscores (e.g., "overtimesupervisor")
-                    input_key_options = [normalize_key(master_key), normalize_key(master_key.replace("_", ""))]
+
+                    # find qty from input_dict (normalized input keys)
+                    input_key_options = [
+                        normalize_key(master_key),
+                        normalize_key(master_key.replace("_", ""))
+                    ]
+
                     qty = Decimal("0")
                     for k in input_key_options:
                         if k in input_dict and input_dict.get(k):
                             qty = input_dict.get(k)
-                            input_key_used = k
                             break
+
                     if not qty:
                         continue
 
-                    # rate lookup: prefer normalized master_key, then fallback to the master_key without underscores
-                    rate = op_rate.get(normalize_key(master_key), op_rate.get(normalize_key(master_key.replace("_", "")), Decimal("0")))
+                    # ------------------------------
+                    # RATE LOOKUP (original logic)
+                    # ------------------------------
+                    lookup_key = normalize_key(master_key)
 
+                    rate = op_rate.get(
+                        lookup_key,
+                        op_rate.get(normalize_key(master_key.replace("_", "")), Decimal("0"))
+                    )
+
+                    # ----------------------------------------------
+                    # ✔ COST-TYPE OVERRIDE (added, no logic changed)
+                    # ----------------------------------------------
+                    # Agar master table me type='cost' hoga → cost ka rate use karna hai
+                    if lookup_key in op_cost:
+                        rate = op_cost[lookup_key]
+
+                    # ------------------------------
+                    # Final calculation (original)
+                    # ------------------------------
                     amt = qty * Decimal(str(rate))
                     manpower_cost += amt
+
                     breakdown_data.append({
                         "date": date, "customer": customer, "location": location,
                         "category": "Manpower Cost",
