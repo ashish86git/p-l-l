@@ -103,7 +103,8 @@
           <option value="lifelong">Lifelong</option>
           <option value="hike">Hike</option>
           <option value="eshopbox">Eshopbox</option>
-          <option value="spario">Spario</option>
+          <option value="spario_b2c">Spario B2C</option>
+          <option value="spario_b2b">Spario B2B</option>
         </select>
       </div>
       <div class="col-md-4">
@@ -558,7 +559,7 @@
       }
     },
     // Spario Customer (New Data)
-    "spario": {
+    "spario_b2c": {
       "Hyderabad": {
         "Service Charges - Open Footwear": [
           {name:"b2c_out_35k_50k",label:"Out- B2C/Pair (35K-50K Per Month)"},
@@ -613,27 +614,20 @@
         ]
       },
       "Gurgaon": {
-        "Box in Box Out- Model": [
-          {name:"inbound_box",label:"Inbound/Box"},
-          {name:"outbound_box",label:"Outbound/Box"},
-          {name:"transport_cost_box",label:"Trasnport cost/ Box"},
-          {name:"unloading_charges_box",label:"Unloading Charges/Box"}
+        "B2C: Order Slabs- Model": [
+          {name:"b2c_order_0_20000",label:"B2C Order 0 - 20000"},
+          {name:"b2c_order_20001_35000",label:"B2C Order 20001 - 35000"},
+          {name:"b2c_order_35001_50000",label:"B2C Order 35001 - 50000"},
+          {name:"b2b_order_pair",label:"B2B Order/Pair"},
+          {name:"returns_orders",label:"Returns Orders"},
+          {name:"claims_orders",label:"Claims Orders"},
+          {name:"b2c_sunday_holiday",label:"B2C Order (Sunday & Holiday)"}
+      ],
+        "B2C: Storage": [
+          {name:"storage_gt_60k",label:"> 60 K Storage"}
         ],
-        "Storage - Box in Box Out": [
-          {name:"storage_day_box_lt4k",label:"Storage/Day/Box up to 4000 Boxes"},
-          {name:"storage_day_box_4k_10k",label:"Storage/Day/Box - 4000-10000 Boxes"},
-          {name:"storage_day_box_gt10k",label:"Storage/Day/Box - >10000 Boxes"}
-        ],
-        "Pair In Pair Out Model": [
-          {name:"outbound_pair",label:"Outbound/Pair"},
-          {name:"local_transport_actual",label:"Local Transportation As actual (Amount)"},
-          {name:"return_transport_actual",label:"Return Transportation As actual(Amount)"},
-          {name:"transport_cost_box_pip",label:"Trasnport cost/ Box"},
-          {name:"unloading_charges_box_pip",label:"Unloading Charges/Box"}
-        ],
-        "Throughput Numbers": [
-          {name:"order_qty_total",label:"Order Qty- B2B + B2C+RTV"}
-        ],
+
+
         // Manpower Fields with Type
         "Manpower": [
           {name:"blue_collar_rk",label:"Blue Collar(R.K)", type:"count"},
@@ -681,7 +675,68 @@
           {name:"ribbon_25x50",label:"Ribbon-25 x 50", type: "currency"}
         ]
       }
+    },
+    "spario_b2b": {
+    "Gurgaon": {
+        "Operations": [
+
+            {name:"invoice_value_up_to_5cr", label:"Invoice Value up to 5Cr", unit:"Qty"},
+            {name:"invoice_value_5_to_8cr", label:"Invoice Value 5 to 8 Cr", unit:"Qty"},
+            {name:"invoice_value_8_to_10cr", label:"Invoice Value 8 to 10 Cr", unit:"Qty"},
+            {name:"invoice_value_10_to_12cr", label:"Invoice Value 10 to 12 Cr", unit:"Qty"},
+            {name:"invoice_value_12_to_14cr", label:"Invoice Value 12 to 14 Cr", unit:"Qty"},
+            {name:"invoice_value_14_to_16cr", label:"Invoice Value 14 to 16 Cr", unit:"Qty"},
+            {name:"invoice_value_16_to_18cr", label:"Invoice Value 16 to 18 Cr", unit:"Qty"}
+
+        ],
+
+        "Manpower": [
+          {name:"blue_collar_rk",label:"Blue Collar(R.K)", type:"count"},
+          {name:"white_collar",label:"White Collar", type:"currency"},
+          {name:"blue_collar_kbr",label:"Blue Collar(KBR)", type:"count"},
+          {name:"blue_collar_drona",label:"Blue Collar(Drona Value Chain)", type:"count"},
+          {name:"loading_unloading_dev",label:"Loading & Unloading(Dev Entp)", type:"count"},
+          {name:"loading_unloading_kbr",label:"Loading & Unloading(KBR)", type:"count"},
+          {name:"loading_unloading_drona",label:"Loading & Unloading(Drona Value Chain)", type:"count"},
+          {name:"supervisor_team_lead",label:"Supervisor/Team Lead", type:"count"},
+          {name:"adhoc_manpower",label:"Adhoc Manpower", type:"count"},
+          {name:"house_keeping",label:"House Keeping", type:"count"},
+          {name:"security_guard_female",label:"Security Guard Female", type:"count"},
+          {name:"security_guard",label:"Security Guard", type:"count"},
+          {name:"security_supervisor",label:"Security Supervisor", type:"count"}
+        ],
+        "Other Charges/Attendance": [
+
+          {name:"tea",label:"Tea", type: "currency"},
+          {name:"water",label:"Water", type: "currency"},
+          {name:"internet",label:"Internet Charge", type: "currency"},
+          {name:"wms",label:"WMS Charge", type: "currency"},
+          {name:"stationery",label:"Stationery", type: "currency"},
+          {name:"electricity",label:"Electricity", type: "currency"},
+          {name:"electricity_sub_meter",label:"Electricity- Sub meter", type: "currency"},
+          {name:"diesel",label:"Diesel", type: "currency"},
+          {name:"staff_welfare",label:"Staff Welfare", type: "currency"},
+          {name:"convence",label:"Convence", type: "currency"},
+          {name:"ho_cost",label:"HO Cost", type: "currency"},
+          {name:"traveling_cost",label:"Traveling Cost", type: "currency"},
+          {name:"hra",label:"HRA", type: "currency"},
+          {name:"capex",label:"Capex", type: "currency"},
+          {name:"hk_materials",label:"HK- Materials", type: "currency"},
+          {name:"other_expenses",label:"Other Expenses", type: "currency"},
+          {name:"rr_cost",label:"R & R Cost", type: "currency"},
+          {name:"rental",label:"Rental", type: "currency"}
+        ],
+        "Consumables": [
+          {name:"roll_100x150",label:"Roll-100 x 150 ( No of Orders X 2)", type: "currency"},
+          {name:"roll_75x50",label:"Roll-75 x 50", type: "currency"},
+          {name:"roll_25x50",label:"Roll-25 x 50", type: "currency"},
+          {name:"a4_paper",label:"A4 Size Paper", type: "currency"},
+          {name:"ribbon_25x50",label:"Ribbon-25 x 50", type: "currency"}
+        ]
+
+      }
     }
+
   };
 
   const customerSelect = document.getElementById("customer");
