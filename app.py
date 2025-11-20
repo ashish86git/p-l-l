@@ -91,7 +91,7 @@ with app.app_context():
 # LOCATIONS & CUSTOMERS (for demo)
 # -----------------------------
 LOCATIONS = ["Hyderabad", "Gurgaon"]
-CUSTOMERS = ["kothari_kickers","lifelong","hike","eshopbox","spario"]
+CUSTOMERS = ["kothari_kickers","lifelong","hike","eshopbox","spario_b2c","spario_b2b"]
 
 DAILY_INPUTS = []
 
