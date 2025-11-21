@@ -91,7 +91,7 @@ with app.app_context():
 # LOCATIONS & CUSTOMERS (for demo)
 # -----------------------------
 LOCATIONS = ["Hyderabad", "Gurgaon"]
-CUSTOMERS = ["kothari_kickers","lifelong","hike","eshopbox","spario_b2c","spario_b2b"]
+CUSTOMERS = ["kothari_kickers","lifelong","hike","eshopbox","spario","spario_b2b"]
 
 DAILY_INPUTS = []
 
@@ -379,6 +379,7 @@ def daily_input():
     operational_data = MasterOperational.query.all()
     consumables_data = MasterConsumables.query.all()
 
+
     # Build customer list
     customers_set = set()
     for t in [manpower_data, operational_data, consumables_data]:
@@ -399,6 +400,7 @@ def daily_input():
         date = form_data.get("date")
         customer = form_data.get("customer")
         location = form_data.get("location")
+
 
         # Basic Validation
         if not date or not customer or not location:
@@ -445,6 +447,7 @@ def daily_input():
                         field_value=val
                     )
                     db.session.add(new_entry)
+
 
             db.session.commit()
             flash(f"✅ Data saved successfully for {customer} - {location} ({date})", "success")
