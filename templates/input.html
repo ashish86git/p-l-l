@@ -103,7 +103,7 @@
           <option value="lifelong">Lifelong</option>
           <option value="hike">Hike</option>
           <option value="eshopbox">Eshopbox</option>
-          <option value="spario_b2c">Spario B2C</option>
+          <option value="spario">Spario B2C</option>
           <option value="spario_b2b">Spario B2B</option>
         </select>
       </div>
@@ -251,8 +251,8 @@
           {name:"b2c_outward_item_Kothari",label:"B2C Outward Rate/Item"},
           {name:"cycle_count_item_Kothari",label:"Cycle Count Rate/Item"},
           {name:"rto_rate_item_Kothari",label:"RTO Rate/Item"},
-          {name:"claim_rate_item_Kothari",label:"Claim Rate/Item"},
-          {name:"extra_manpower_Kothari",label:"Extra Manpower"}
+          {name:"claim_rate_item_Kothari",label:"Claim Rate/Item"}
+
         ],
         "Storage": [
           {name:"storage_kickers_footwear",label:"Storage (Kickers) - Footwear"},
@@ -277,6 +277,7 @@
           {name:"security_guard_female",label:"Security Guard Female"},
           {name:"security_guard",label:"Security Guard"},
           {name:"security_supervisor",label:"Security Supervisor"},
+          {name:"extra_manpower_Kothari",label:"Extra Manpower"}
         ],
         "WMS Charges": [
 
@@ -559,7 +560,7 @@
       }
     },
     // Spario Customer (New Data)
-    "spario_b2c": {
+    "spario": {
       "Hyderabad": {
         "Service Charges - Open Footwear": [
           {name:"b2c_out_35k_50k",label:"Out- B2C/Pair (35K-50K Per Month)"},
@@ -676,8 +677,10 @@
         ]
       }
     },
+
+
     "spario_b2b": {
-    "Gurgaon": {
+      "Gurgaon": {
         "Operations": [
 
             {name:"invoice_value_up_to_5cr", label:"Invoice Value up to 5Cr", unit:"Qty"},
@@ -733,7 +736,6 @@
           {name:"a4_paper",label:"A4 Size Paper", type: "currency"},
           {name:"ribbon_25x50",label:"Ribbon-25 x 50", type: "currency"}
         ]
-
       }
     }
 
@@ -804,14 +806,14 @@
   });
 </script>
   <script>
-    // Show alert on form submit
-  const form = document.querySelector("form");
-  form.addEventListener("submit", function(e) {
-      // Small delay to let form actually submit
-      setTimeout(() => {
-          alert("✅ Daily input successfully submitted!");
-      }, 100);
-  });
+      // Show alert on form submit
+    const form = document.querySelector("form");
+    form.addEventListener("submit", function(e) {
+        // Small delay to let form actually submit
+        setTimeout(() => {
+            alert("✅ Daily input successfully submitted!");
+        }, 100);
+    });
 
   </script>
 </body>

@@ -4,188 +4,300 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Financial Intelligence - P&L Dashboard</title>
+
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
     <style>
-        /* --- Color Palette & Variables (Enhanced Red) --- */
+        /* ---------------------------------------------------------
+           GLOBAL COLORS – PREMIUM FINANCIAL THEME
+        --------------------------------------------------------- */
         :root {
-            --primary-red: #dc3545; /* Richer, slightly darker Financial Red */
-            --secondary-maroon: #f74848; /* Very Deep Maroon for accents and navbar */
-            --light-bg: #ebebeb; /* Slightly darker background to make red pop */
-            --card-bg: #ffffff;
-            --dark-text: #2c3e50;
+            --primary-red: #d82332;
+            --deep-red: #b51324;
+            --dark-navy: #1a1d2a;
+            --light-gray: #f4f5f7;
+            --glass-bg: rgba(255, 255, 255, 0.35);
+            --glass-border: rgba(255, 255, 255, 0.25);
+            --text-dark: #1f2d3d;
+
+            /* NEW HEADER & FOOTER COLOR */
+            --header-footer-color: #FFDEAD;
         }
 
-        /* --- General Body Styling --- */
         body {
-            background-color: var(--light-bg);
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(120deg, #efefef, #e3e3e3);
+            font-family: "Segoe UI", Roboto, sans-serif;
         }
 
-        /* --- Navbar Styling --- */
+        /* ---------------------------------------------------------
+           NAVBAR  (UPDATED WITH F4BB44)
+        --------------------------------------------------------- */
         .navbar {
-            background-color: var(--secondary-maroon) !important;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); /* Darker shadow */
+            background: var(--header-footer-color) !important;
+            padding: 1rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
+
         .navbar-brand {
-            font-weight: 700;
-            font-size: 1.6rem;
+            font-weight: 800;
             letter-spacing: 1.5px;
-            color: #fff !important;
+            color: #1f1f1f !important;
+            font-size: 1.7rem;
         }
+
         .nav-link {
+            color: #1f1f1f !important;
+            padding: 0.55rem 1rem;
+            border-radius: 8px;
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.8) !important;
-            transition: color 0.3s ease, background-color 0.3s ease;
-            border-radius: 0.375rem;
-        }
-        .nav-link:hover, .nav-link:focus {
-            color: #fff !important;
-            background-color: rgba(255, 255, 255, 0.15);
+            transition: 0.3s ease;
         }
 
-        /* --- Main Header Styling --- */
+        .nav-link:hover,
+        .nav-link.active {
+            color: #000 !important;
+            background: rgba(0,0,0,0.12);
+            backdrop-filter: blur(4px);
+        }
+
+        /* ---------------------------------------------------------
+           HEADER SECTION
+        --------------------------------------------------------- */
         .page-header {
-            background: linear-gradient(135deg, var(--primary-red), var(--secondary-maroon));
+            background: linear-gradient(135deg, var(--deep-red), var(--primary-red));
+            padding: 3.5rem 2rem;
+            border-radius: 1rem;
             color: #fff;
-            padding: 3rem;
-            margin-bottom: 3rem !important;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); /* Stronger shadow */
-            text-align: left;
+            margin-bottom: 3.5rem;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.45);
         }
+
         .page-header h1 {
-            font-size: 2.8rem;
+            font-size: 3rem;
             font-weight: 900;
-            letter-spacing: 1px;
         }
+
         .page-header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-top: 0.5rem;
+            opacity: 0.95;
+            font-size: 1.15rem;
         }
 
-        /* --- Card Styling (Data Blocks) --- */
+        /* ---------------------------------------------------------
+           CARDS – GLASSMORPHISM
+        --------------------------------------------------------- */
         .card {
-            border: none;
-            border-radius: 0.75rem;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            background: var(--card-bg);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); /* Slightly stronger initial shadow */
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(163, 0, 0, 0.4); /* Enhanced Red Shadow on Hover */
-            border: 1px solid var(--primary-red);
-        }
-        .card-body {
-            padding: 2rem 1.5rem;
-        }
-        .card-title {
-            color: var(--dark-text);
-            font-weight: 700;
-            font-size: 1.35rem;
-            margin-bottom: 1rem;
-        }
-        .card-text {
-            color: #6c757d;
-            font-size: 0.95rem;
-            min-height: 40px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            backdrop-filter: blur(12px);
+            padding-top: 1rem;
+            transition: 0.35s ease-in-out;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.15);
         }
 
-        /* --- Icon Styling (Focus on Financial Icons) --- */
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+        }
+
         .card-icon {
-            font-size: 2.5rem;
+            font-size: 2.4rem;
+            padding: 1rem;
+            background: rgba(216, 32, 50, 0.13);
+            border-radius: 50%;
             color: var(--primary-red);
             margin-bottom: 1rem;
-            display: block;
-            background-color: #ffe0e0; /* Lighter background for the icon */
-            width: 60px;
-            height: 60px;
-            line-height: 60px;
-            border-radius: 50%;
-            text-align: center;
         }
 
-        /* --- Button Styling --- */
-        .btn-primary {
-            background-color: var(--primary-red);
-            border-color: var(--primary-red);
-            font-weight: 600;
-            padding: 0.6rem 1.8rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 10px rgba(163, 0, 0, 0.5); /* Stronger Red Shadow */
-            transition: all 0.3s ease;
+        .card-title {
+            font-weight: 700;
+            font-size: 1.3rem;
         }
+
+        .card-text {
+            font-size: 0.95rem;
+            color: #555;
+            min-height: 52px;
+        }
+
+        .btn-primary {
+            background: var(--primary-red);
+            border-color: var(--primary-red);
+            padding: 0.55rem 1.6rem;
+            border-radius: 0.55rem;
+            font-weight: 600;
+            transition: 0.3s ease;
+            box-shadow: 0 6px 15px rgba(217, 28, 40, 0.45);
+        }
+
         .btn-primary:hover {
-            background-color: var(--secondary-maroon);
-            border-color: var(--secondary-maroon);
-            box-shadow: 0 6px 15px rgba(122, 0, 0, 0.6);
-            transform: translateY(-1px);
+            background: var(--deep-red);
+            border-color: var(--deep-red);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(150, 13, 24, 0.55);
+        }
+
+        /* ---------------------------------------------------------
+           FOOTER  (UPDATED WITH F4BB44)
+        --------------------------------------------------------- */
+        .footer {
+            background: var(--header-footer-color);
+            color: #3a2f00;
+            border-radius: 12px 12px 0 0;
+            margin-top: 4rem;
+            box-shadow: 0 -6px 20px rgba(0,0,0,0.3);
+            padding-top: 2.5rem;
+        }
+
+        .footer-title {
+            color: #3a2f00;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .footer-subtitle {
+            color: #4c3200;
+            font-weight: 700;
+        }
+
+        .footer-text {
+            font-size: 0.9rem;
+            opacity: 0.75;
+        }
+
+        .footer-link {
+            color: #4c3200;
+            text-decoration: none;
+            margin: 0 6px;
+        }
+
+        .footer-link:hover {
+            color: #000;
+        }
+
+        .footer-brand {
+            color: #3a2f00;
+            font-weight: 700;
+        }
+
+        .footer-bottom {
+            border-color: rgba(0,0,0,0.25) !important;
+            opacity: 0.85;
         }
     </style>
 </head>
-<body class="bg-light">
 
+<body>
+
+<!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container">
-        <a class="navbar-brand" href="#">P&L ANALYTICS</a>
+        <a class="navbar-brand">P&L ANALYTICS</a>
+
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
+
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('master') }}"><i class="bi bi-database me-2"></i>Master Data</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('daily_input') }}"><i class="bi bi-currency-dollar me-2"></i>Daily Revenue</a></li>
-                <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{ url_for('summary') }}"><i class="bi bi-clipboard-data me-2"></i>**P&L Dashboard**</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('config') }}"><i class="bi bi-gear me-2"></i>Settings</a></li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('master') }}"><i class="bi bi-database me-2"></i>Master Data</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('daily_input') }}"><i class="bi bi-currency-dollar me-2"></i>Daily Revenue</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('summary') }}"><i class="bi bi-clipboard-data me-2"></i>P&L Dashboard</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('config') }}"><i class="bi bi-gear me-2"></i>Settings</a>
+                </li>
+
             </ul>
         </div>
     </div>
 </nav>
 
+<!-- PAGE HEADER -->
 <div class="container py-5">
     <div class="page-header">
-        <h1 class="fw-bold">Profit & Loss Intelligence Center</h1>
+        <h1>Profit & Loss Intelligence Center</h1>
         <p>Real-time financial visibility and management for all warehouse operations.</p>
     </div>
 
-    <div class="row justify-content-center g-4">
+    <!-- CARDS SECTION -->
+    <div class="row g-4 justify-content-center">
+
         <div class="col-lg-3 col-md-6">
-            <div class="card shadow-lg text-center h-100">
-                <div class="card-body">
-                    <i class="bi bi-cash-stack card-icon"></i>
-                    <h5 class="card-title">Rate & Cost Setup</h5>
-                    <p class="card-text">Set and manage the base rates for services, manpower, and operational expenses.</p>
-                    <a href="{{ url_for('master') }}" class="btn btn-primary">Manage Rates</a>
-                </div>
+            <div class="card text-center p-3 h-100">
+                <i class="bi bi-cash-stack card-icon"></i>
+                <h5 class="card-title">Rate & Cost Setup</h5>
+                <p class="card-text">Set and manage the base rates for services, manpower, and operational expenses.</p>
+                <a href="{{ url_for('master') }}" class="btn btn-primary mt-2">Manage Rates</a>
             </div>
         </div>
 
         <div class="col-lg-3 col-md-6">
-            <div class="card shadow-lg text-center h-100">
-                <div class="card-body">
-                    <i class="bi bi-calculator card-icon"></i>
-                    <h5 class="card-title">Daily Financial Input</h5>
-                    <p class="card-text">Input daily operational throughput and associated variable/fixed costs for P&L calculation.</p>
-                    <a href="{{ url_for('daily_input') }}" class="btn btn-primary">Enter Data</a>
-                </div>
+            <div class="card text-center p-3 h-100">
+                <i class="bi bi-calculator card-icon"></i>
+                <h5 class="card-title">Daily Financial Input</h5>
+                <p class="card-text">Input daily throughput and operational cost data for P&L calculation.</p>
+                <a href="{{ url_for('daily_input') }}" class="btn btn-primary mt-2">Enter Data</a>
             </div>
         </div>
 
         <div class="col-lg-3 col-md-6">
-            <div class="card shadow-lg text-center h-100">
-                <div class="card-body">
-                    <i class="bi bi-file-bar-graph card-icon"></i>
-                    <h5 class="card-title">Financial Reports (P&L)</h5>
-                    <p class="card-text">View the core Profit & Loss statement, track margins, and analyze variance reports by date.</p>
-                    <a href="{{ url_for('summary') }}" class="btn btn-primary">View P&L</a>
-                </div>
+            <div class="card text-center p-3 h-100">
+                <i class="bi bi-file-bar-graph card-icon"></i>
+                <h5 class="card-title">Financial Reports (P&L)</h5>
+                <p class="card-text">View profitability, margins, variance, and operational financial performance.</p>
+                <a href="{{ url_for('summary') }}" class="btn btn-primary mt-2">View P&L</a>
             </div>
         </div>
+
     </div>
 </div>
 
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="container py-4">
+        <div class="row text-center text-md-start align-items-center">
+
+            <div class="col-md-4 mb-3">
+                <h5 class="footer-title">P&L Intelligence Suite</h5>
+                <p class="footer-text">
+                    Advanced financial visibility, real-time P&L tracking, and operational intelligence for modern warehousing.
+                </p>
+            </div>
+
+            <div class="col-md-4 mb-3 text-center">
+                <h6 class="footer-subtitle mb-2">Quick Links</h6>
+                <a href="{{ url_for('master') }}" class="footer-link">Master</a> |
+                <a href="{{ url_for('daily_input') }}" class="footer-link">Daily Revenue</a> |
+                <a href="{{ url_for('summary') }}" class="footer-link">Dashboard</a>
+
+            </div>
+
+            <div class="col-md-4 mb-3 text-md-end text-center">
+                <h6 class="footer-subtitle">Powered By</h6>
+                <p class="footer-brand mb-0">Drona Logitech</p>
+            </div>
+
+        </div>
+
+        <div class="text-center mt-3 pt-3 border-top footer-bottom">
+            <small>© {{ current_year }} All Rights Reserved • Drona Logitech</small>
+        </div>
+    </div>
+</footer>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

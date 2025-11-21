@@ -6,6 +6,9 @@
     <title>Financial Summary Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <style>
         /* --- CUSTOM THEME STYLES (RETAINED) --- */
         :root {
@@ -14,10 +17,13 @@
             --green-profit: #10B981; /* Emerald Green */
             --blue-line: #3B82F6; /* Primary Blue for the Profit Line */
             --shadow-custom: 0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 5px 10px -5px rgba(0, 0, 0, 0.04);
+            --dark-red-800: #991B1B;
+            --header-orange: #FFDEAD; /* Light Salmon (for Header Background) */
         }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f0f4f8; /* Light Blue/Gray Background */
+            padding-top: 80px; /* Style for the fixed header to prevent content overlap */
         }
         .card-shadow {
             box-shadow: var(--shadow-custom);
@@ -62,16 +68,70 @@
             border-radius: 0.75rem;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
+
+        /* New Header Styles */
+        .header-bg {
+            background-color: var(--header-orange);
+        }
+        /* MODIFIED: Header text color is now black */
+        .nav-link-style {
+            color: black;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        .nav-link-style:hover {
+            background-color: rgba(0, 0, 0, 0.1); /* Darker hover for light background */
+        }
+        .nav-link-active {
+            background-color: var(--primary-red);
+            font-weight: 700;
+            color: white; /* IMPORTANT: Active link text must be white for contrast */
+        }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body>
 
-    <div class="max-w-7xl mx-auto">
+    <header class="fixed top-0 left-0 right-0 header-bg shadow-xl z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
+
+            <div class="flex items-center">
+                <a href="#" class="text-3xl font-extrabold text-gray-900 tracking-wider flex items-center">
+                    <i class="bi bi-speedometer2 me-2 text-red-700"></i>Drona Logitech
+                </a>
+            </div>
+
+            <nav class="hidden md:flex space-x-2 lg:space-x-4">
+                <a class="nav-link-style" href="/master">
+                    <i class="bi bi-database me-2"></i>Master Data
+                </a>
+                <a class="nav-link-style" href="{{ url_for('daily_input') }}">
+                    <i class="bi bi-currency-dollar me-2"></i>Daily Revenue
+                </a>
+                <a class="nav-link-style nav-link-active" href="#">
+                    <i class="bi bi-clipboard-data me-2"></i>P&L Dashboard
+                </a>
+                <a class="nav-link-style" href="#">
+                    <i class="bi bi-gear me-2"></i>Settings
+                </a>
+            </nav>
+
+            <div class="md:hidden">
+                <button class="text-gray-900 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+
+        </div>
+    </header>
+    <div class="max-w-7xl mx-auto p-4 md:p-10">
+
         <h1 class="text-4xl font-extrabold text-gray-900 mb-8 border-b-4 border-red-500 pb-3 tracking-tight">
             💰 Financial Performance Dashboard
         </h1>
 
-        <form method="get" action="{{ url_for('summary') }}" class="bg-white p-7 rounded-xl card-shadow mb-10 border-l-4 border-red-600 transition duration-300 hover:shadow-lg">
+        <form method="get" action="#" class="bg-white p-7 rounded-xl card-shadow mb-10 border-l-4 border-red-600 transition duration-300 hover:shadow-lg">
             <h3 class="text-2xl font-bold text-gray-800 mb-5">Filter Analysis Period</h3>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
 
@@ -104,6 +164,7 @@
                 <a href="{{ url_for('summary') }}" class="px-6 py-3 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150 font-semibold shadow-md">
                     Reset Filters
                 </a>
+
                 <button type="submit" class="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition duration-150 shadow-md focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transform hover:scale-105">
                     Apply Filters
                 </button>
@@ -271,6 +332,15 @@
 
     </div>
 
+    <footer class="w-full bg-gray-800 text-white mt-10">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center text-sm">
+            <p>&copy; 2025 P&L Dashboard. All rights reserved.</p>
+            <div class="flex space-x-4 mt-3 md:mt-0">
+                <a href="#" class="hover:text-red-500 transition duration-150">Privacy Policy</a>
+                <a href="#" class="hover:text-red-500 transition duration-150">Terms of Service</a>
+            </div>
+        </div>
+    </footer>
     <script>
         // Function to toggle the visibility of the breakdown table (RETAINED)
         function toggleBreakdown() {
@@ -477,10 +547,6 @@
 
         // Initialize both charts on load
         document.addEventListener('DOMContentLoaded', () => {
-            // Filter population logic runs here (inside DOMContentLoaded listener)
-            // ... (rest of the filter logic)
-
-            // Chart rendering must run after data is sorted and elements are ready
             createRevenueCostChart();
             createNetProfitChart();
         });
