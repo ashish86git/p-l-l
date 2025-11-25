@@ -777,6 +777,62 @@ def summary():
 
 
 
+
+@app.route("/chat_summary", methods=["POST"])
+def chat_summary():
+    try:
+        user_question = request.json.get("question", "").lower().strip()
+
+        # Run the summary logic BUT do NOT render template
+        ctx = summary().context  # take the context only (Flask 3.0 feature)
+
+        summary_data = ctx["summary_data"]
+        breakdown_data = ctx["breakdown_data"]
+
+        # ===== INTENT DETECTION =====
+        if "revenue" in user_question:
+            total = sum(i["revenue"] for i in summary_data)
+            return jsonify({"answer": f"Total revenue is ₹{round(total,2)}"})
+
+        if "manpower" in user_question:
+            total = sum(i["manpower_cost"] for i in summary_data)
+            return jsonify({"answer": f"Total manpower cost is ₹{round(total,2)}"})
+
+        if "other cost" in user_question or "misc" in user_question:
+            total = sum(i["other_cost"] for i in summary_data)
+            return jsonify({"answer": f"Total other cost is ₹{round(total,2)}"})
+
+        if "profit" in user_question:
+            total = sum(i["net_profit"] for i in summary_data)
+            return jsonify({"answer": f"Total net profit is ₹{round(total,2)}"})
+
+        if "margin" in user_question:
+            rev = sum(i["revenue"] for i in summary_data)
+            profit = sum(i["net_profit"] for i in summary_data)
+            margin = (profit / rev * 100) if rev else 0
+            return jsonify({"answer": f"Overall margin is {round(margin,2)}%"})
+
+        if "breakdown" in user_question:
+            fields = {}
+            for item in breakdown_data:
+                fields.setdefault(item["field"], 0)
+                fields[item["field"]] += item["amount"]
+
+            top = sorted(fields.items(), key=lambda x: x[1], reverse=True)[:5]
+            text = "\n".join([f"{k}: ₹{round(v,2)}" for k, v in top])
+
+            return jsonify({"answer": "Top 5 cost breakdown:\n" + text})
+
+        # DEFAULT FALLBACK
+        return jsonify({
+            "answer": "You can ask: revenue, profit, margin, manpower cost, other cost, breakdown, etc."
+        })
+
+    except Exception as e:
+        print("CHATBOT ERROR:", e)
+        return jsonify({"answer": "Backend error: " + str(e)})
+
+
 @app.route("/config")
 def config():
     return render_template("config.html")
