@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Financial Intelligence - P&L Dashboard</title>
 
-    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -14,74 +13,94 @@
            GLOBAL COLORS – PREMIUM FINANCIAL THEME
         --------------------------------------------------------- */
         :root {
-            --primary-red: #d82332;
-            --deep-red: #b51324;
-            --dark-navy: #1a1d2a;
+            --primary-red: #d82332; /* Deep Red/Moccasin - Main Accent (Navbar/Footer/Button) */
+            --deep-red: #b51324; /* Darker Red for Hover/Shadows */
+            --dark-navy: #d82332;
             --light-gray: #f4f5f7;
-            --glass-bg: rgba(255, 255, 255, 0.35);
-            --glass-border: rgba(255, 255, 255, 0.25);
+            --glass-bg: rgba(255, 255, 255, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.5);
             --text-dark: #1f2d3d;
+            --text-light: #f7f7f7;
 
-            /* NEW HEADER & FOOTER COLOR */
-            --header-footer-color: #FFDEAD;
+            /* HEADER/NAVBAR/FOOTER COLOR: Now set to Primary Red */
+            --header-footer-color: var(--primary-red);
+            --header-text-on-red: var(--text-light); /* White/Light text on Red background */
         }
 
         body {
             background: linear-gradient(120deg, #efefef, #e3e3e3);
             font-family: "Segoe UI", Roboto, sans-serif;
+            color: var(--text-dark);
         }
 
         /* ---------------------------------------------------------
-           NAVBAR  (UPDATED WITH F4BB44)
+           NAVBAR (RED BACKGROUND - FIXED)
         --------------------------------------------------------- */
         .navbar {
-            background: var(--header-footer-color) !important;
+            background: var(--header-footer-color) !important; /* Red */
             padding: 1rem 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
         }
 
         .navbar-brand {
-            font-weight: 800;
-            letter-spacing: 1.5px;
-            color: #1f1f1f !important;
-            font-size: 1.7rem;
+            font-weight: 900;
+            letter-spacing: 1.8px;
+            color: var(--header-text-on-red) !important; /* Light text */
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-logo {
+            height: 40px;
+            width: auto;
+            margin-right: 15px;
+            border-radius: 4px;
+            /* Optional: Add a light shadow for better visibility on red */
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
         }
 
         .nav-link {
-            color: #1f1f1f !important;
-            padding: 0.55rem 1rem;
-            border-radius: 8px;
-            font-weight: 500;
+            color: var(--header-text-on-red) !important; /* Light text */
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 600;
             transition: 0.3s ease;
         }
 
         .nav-link:hover,
         .nav-link.active {
-            color: #000 !important;
-            background: rgba(0,0,0,0.12);
+            color: var(--primary-red) !important; /* Red text on hover */
+            background: var(--text-light); /* White background on hover */
             backdrop-filter: blur(4px);
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
         }
 
         /* ---------------------------------------------------------
-           HEADER SECTION
+           PAGE HEADER (NAVY BACKGROUND)
+           NOTE: I'm reverting this to Deep Red/Primary Red gradient
+           to ensure a high-contrast and attractive main title area.
         --------------------------------------------------------- */
         .page-header {
-            background: linear-gradient(135deg, var(--deep-red), var(--primary-red));
-            padding: 3.5rem 2rem;
-            border-radius: 1rem;
-            color: #fff;
-            margin-bottom: 3.5rem;
-            box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+            background: linear-gradient(135deg, var(--dark-navy), var(--text-dark)); /* Dark background for title section */
+            padding: 4rem 2.5rem;
+            border-radius: 1.5rem;
+            color: #fff; /* White text on dark background */
+            margin-bottom: 4rem;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            border: 2px solid rgba(255, 255, 255, 0.1);
         }
 
         .page-header h1 {
-            font-size: 3rem;
+            font-size: 3.2rem;
             font-weight: 900;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
         }
 
         .page-header p {
-            opacity: 0.95;
-            font-size: 1.15rem;
+            opacity: 1;
+            font-size: 1.25rem;
+            font-weight: 500;
         }
 
         /* ---------------------------------------------------------
@@ -90,111 +109,269 @@
         .card {
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
-            border-radius: 1rem;
-            backdrop-filter: blur(12px);
-            padding-top: 1rem;
-            transition: 0.35s ease-in-out;
-            box-shadow: 0 10px 28px rgba(0,0,0,0.15);
+            border-radius: 1.5rem;
+            backdrop-filter: blur(15px);
+            padding: 2rem 1.5rem;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+            text-align: center;
         }
 
         .card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 18px 40px rgba(0,0,0,0.25);
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.3);
+            border: 1px solid var(--primary-red);
         }
 
+        /* ICON STYLING (RED BACKGROUND, LIGHT ICON) */
         .card-icon {
-            font-size: 2.4rem;
-            padding: 1rem;
-            background: rgba(216, 32, 50, 0.13);
+            font-size: 2.8rem;
+            padding: 1.2rem;
+            background: var(--primary-red); /* Red background */
             border-radius: 50%;
-            color: var(--primary-red);
-            margin-bottom: 1rem;
+            color: var(--text-light); /* White icon color */
+            margin: 0 auto 1.5rem auto;
+            display: inline-flex;
+            box-shadow: 0 5px 15px rgba(216, 35, 50, 0.6);
         }
 
         .card-title {
-            font-weight: 700;
-            font-size: 1.3rem;
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
         }
 
         .card-text {
-            font-size: 0.95rem;
-            color: #555;
+            font-size: 1rem;
+            color: #444;
             min-height: 52px;
+            margin-bottom: 1.5rem;
         }
 
         .btn-primary {
             background: var(--primary-red);
             border-color: var(--primary-red);
-            padding: 0.55rem 1.6rem;
-            border-radius: 0.55rem;
-            font-weight: 600;
-            transition: 0.3s ease;
+            padding: 0.6rem 1.8rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            transition: all 0.3s ease;
             box-shadow: 0 6px 15px rgba(217, 28, 40, 0.45);
+            text-transform: uppercase;
         }
 
         .btn-primary:hover {
             background: var(--deep-red);
             border-color: var(--deep-red);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(150, 13, 24, 0.55);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(150, 13, 24, 0.65);
         }
 
         /* ---------------------------------------------------------
-           FOOTER  (UPDATED WITH F4BB44)
+           FOOTER (RED BACKGROUND - FIXED)
         --------------------------------------------------------- */
         .footer {
-            background: var(--header-footer-color);
-            color: #3a2f00;
+            background: var(--header-footer-color); /* Red */
+            color: var(--header-text-on-red); /* Light text */
             border-radius: 12px 12px 0 0;
-            margin-top: 4rem;
-            box-shadow: 0 -6px 20px rgba(0,0,0,0.3);
-            padding-top: 2.5rem;
+            margin-top: 5rem;
+            box-shadow: 0 -8px 25px rgba(0,0,0,0.4);
+            padding-top: 3rem;
         }
 
         .footer-title {
-            color: #3a2f00;
-            font-size: 1.25rem;
-            font-weight: 700;
+            color: var(--text-light); /* Light text */
+            font-size: 1.35rem;
+            font-weight: 800;
         }
 
         .footer-subtitle {
-            color: #4c3200;
+            color: var(--text-light);
             font-weight: 700;
         }
 
         .footer-text {
-            font-size: 0.9rem;
-            opacity: 0.75;
+            font-size: 0.95rem;
+            opacity: 0.9;
+            color: var(--text-light);
         }
 
         .footer-link {
-            color: #4c3200;
+            color: var(--text-light); /* Light links */
             text-decoration: none;
-            margin: 0 6px;
+            margin: 0 8px;
+            font-weight: 600;
         }
 
         .footer-link:hover {
-            color: #000;
+            color: #000; /* Darker hover for contrast */
         }
 
         .footer-brand {
-            color: #3a2f00;
-            font-weight: 700;
+            color: var(--text-light);
+            font-weight: 800;
         }
 
         .footer-bottom {
-            border-color: rgba(0,0,0,0.25) !important;
-            opacity: 0.85;
+            border-color: rgba(255,255,255,0.3) !important; /* Light border */
+            opacity: 0.9;
+            padding: 1.25rem 0;
+            background: var(--deep-red); /* Darker red strip for bottom */
         }
+
+        /* ---------------------------------------------------------
+           CHATBOT STYLES (RED THEME)
+        --------------------------------------------------------- */
+        .chatbot-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .chatbot-button {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: var(--primary-red);
+            color: white;
+            border: 3px solid var(--text-light); /* White border for highlight */
+            box-shadow: 0 8px 18px rgba(216, 35, 50, 0.6);
+            font-size: 2rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .chatbot-icon-robot {
+            position: absolute;
+            font-size: 2.2rem;
+            opacity: 0.9;
+        }
+
+        .chatbot-icon-chat {
+            position: absolute;
+            font-size: 1.2rem;
+            top: 5px;
+            right: 5px;
+            color: var(--text-light);
+        }
+
+
+        .chatbot-button:hover {
+            background: var(--deep-red);
+            box-shadow: 0 10px 25px rgba(150, 13, 24, 0.8);
+            transform: scale(1.05);
+        }
+
+        .chat-window {
+            width: 380px;
+            height: 500px;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            bottom: 85px;
+            right: 0;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .chat-header {
+            background: var(--primary-red);
+            color: white;
+            padding: 15px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+
+        .chat-body {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: var(--light-gray);
+        }
+
+        .chat-input {
+            padding: 12px;
+            border-top: 1px solid #ddd;
+            display: flex;
+        }
+
+        .chat-input input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-right: 10px;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input input:focus {
+            border-color: var(--primary-red);
+            box-shadow: 0 0 5px rgba(216, 35, 50, 0.4);
+            outline: none;
+        }
+
+        .chat-input button {
+            background: var(--primary-red);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .chat-input button:hover {
+            background: var(--deep-red);
+        }
+
+        /* Chat message bubble styles */
+        .message {
+            margin-bottom: 12px;
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 85%;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .message.user {
+            background: #e3f2fd;
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot {
+            background: #FFDEAD; /* Navajo White for bot bubble */
+            color: var(--text-dark);
+            align-self: flex-start;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
     </style>
 </head>
 
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container">
-        <a class="navbar-brand">P&L ANALYTICS</a>
+        <a class="navbar-brand">
+            <img src="static/logo.JPG" alt="Company Logo" class="navbar-logo">
+            P&L ANALYTICS
+        </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
@@ -224,47 +401,67 @@
     </div>
 </nav>
 
-<!-- PAGE HEADER -->
 <div class="container py-5">
     <div class="page-header">
         <h1>Profit & Loss Intelligence Center</h1>
         <p>Real-time financial visibility and management for all warehouse operations.</p>
     </div>
 
-    <!-- CARDS SECTION -->
-    <div class="row g-4 justify-content-center">
+    <div class="row g-5 justify-content-center">
 
-        <div class="col-lg-3 col-md-6">
-            <div class="card text-center p-3 h-100">
+        <div class="col-lg-4 col-md-6">
+            <div class="card text-center h-100">
                 <i class="bi bi-cash-stack card-icon"></i>
                 <h5 class="card-title">Rate & Cost Setup</h5>
                 <p class="card-text">Set and manage the base rates for services, manpower, and operational expenses.</p>
-                <a href="{{ url_for('master') }}" class="btn btn-primary mt-2">Manage Rates</a>
+                <a href="{{ url_for('master') }}" class="btn btn-primary mt-auto">Manage Rates</a>
             </div>
         </div>
 
-        <div class="col-lg-3 col-md-6">
-            <div class="card text-center p-3 h-100">
+        <div class="col-lg-4 col-md-6">
+            <div class="card text-center h-100">
                 <i class="bi bi-calculator card-icon"></i>
                 <h5 class="card-title">Daily Financial Input</h5>
                 <p class="card-text">Input daily throughput and operational cost data for P&L calculation.</p>
-                <a href="{{ url_for('daily_input') }}" class="btn btn-primary mt-2">Enter Data</a>
+                <a href="{{ url_for('daily_input') }}" class="btn btn-primary mt-auto">Enter Data</a>
             </div>
         </div>
 
-        <div class="col-lg-3 col-md-6">
-            <div class="card text-center p-3 h-100">
+        <div class="col-lg-4 col-md-6">
+            <div class="card text-center h-100">
                 <i class="bi bi-file-bar-graph card-icon"></i>
                 <h5 class="card-title">Financial Reports (P&L)</h5>
                 <p class="card-text">View profitability, margins, variance, and operational financial performance.</p>
-                <a href="{{ url_for('summary') }}" class="btn btn-primary mt-2">View P&L</a>
+                <a href="{{ url_for('summary') }}" class="btn btn-primary mt-auto">View P&L</a>
             </div>
         </div>
 
     </div>
 </div>
 
-<!-- FOOTER -->
+<div class="chatbot-container">
+    <button class="chatbot-button" id="chatbot-toggle-btn">
+        <i class="bi bi-robot chatbot-icon-robot"></i>
+        <i class="bi bi-chat-dots-fill chatbot-icon-chat"></i>
+    </button>
+
+    <div class="chat-window" id="chat-window">
+        <div class="chat-header">
+            P&L Chatbot 🤖
+            <button class="close-btn" id="chat-close-btn">&times;</button>
+        </div>
+
+        <div class="chat-body" id="chat-body">
+            <div class="message bot">Hello! I am the P&L Assistant 🤖. I can analyze your summary data. Ask me about **revenue**, **costs**, or **profit** for a specific period!</div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="chat-input-field" placeholder="Ask a question..." onkeydown="if(event.key === 'Enter') document.getElementById('chat-send-btn').click()">
+            <button id="chat-send-btn" onclick="askChatbot()"><i class="bi bi-send-fill"></i></button>
+        </div>
+    </div>
+</div>
+
 <footer class="footer">
     <div class="container py-4">
         <div class="row text-center text-md-start align-items-center">
@@ -299,5 +496,90 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<script>
+    const chatWindow = document.getElementById('chat-window');
+    const toggleBtn = document.getElementById('chatbot-toggle-btn');
+    const closeBtn = document.getElementById('chat-close-btn');
+    const chatBody = document.getElementById('chat-body');
+    const chatInput = document.getElementById('chat-input-field');
+
+    // Toggle Chat Window
+    toggleBtn.addEventListener('click', () => {
+        chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
+        // Scroll to bottom when opening
+        if (chatWindow.style.display === 'flex') {
+            chatBody.scrollTop = chatBody.scrollHeight;
+            chatInput.focus();
+        }
+    });
+
+    // Close Chat Window
+    closeBtn.addEventListener('click', () => {
+        chatWindow.style.display = 'none';
+    });
+
+    // Function to append a message to the chat body
+    function appendMessage(text, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        messageDiv.textContent = text;
+        chatBody.appendChild(messageDiv);
+        chatBody.scrollTop = chatBody.scrollHeight; // Auto-scroll to latest message
+    }
+
+    // Main Chatbot Function (Now calls Backend)
+    function askChatbot() {
+        const question = chatInput.value.trim();
+        if (question === "") return;
+
+        // 1. Display user message
+        appendMessage(question, 'user');
+        chatInput.value = ''; // Clear input
+
+        // 2. Placeholder for Bot's loading/thinking state
+        const botThinkingMessage = document.createElement('div');
+        botThinkingMessage.className = 'message bot';
+        botThinkingMessage.innerHTML = '...Fetching summary data...';
+        chatBody.appendChild(botThinkingMessage);
+        chatBody.scrollTop = chatBody.scrollHeight;
+
+        // 3. **************** LIVE BACKEND INTEGRATION POINT *******************
+        // This 'fetch' call sends the question to your backend for database query.
+        fetch('/chat_summary', { // Ensure this endpoint exists in your Flask/Django app
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ question: question }) // Send the user's question to the server
+        })
+        .then(response => {
+            // Check for successful response status
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            return response.json(); // Expecting a JSON object with the answer
+        })
+        .then(data => {
+            // Remove thinking message
+            chatBody.removeChild(botThinkingMessage);
+
+            // Check if the expected 'answer' key is present
+            const answer = data.answer || "Sorry, the server returned data but no 'answer' field was found.";
+
+            // Append the actual answer received from the server/database
+            appendMessage(answer, 'bot');
+        })
+        .catch(error => {
+            console.error('Chatbot error:', error);
+            // Remove thinking message and show error
+            if(chatBody.contains(botThinkingMessage)){
+                 chatBody.removeChild(botThinkingMessage);
+            }
+            appendMessage('Error: Could not connect to the financial data server. Please check settings.', 'bot');
+        });
+
+        // --- REMOVE THE TEMPORARY MOCK RESPONSE (setTimeout block) FROM THE ORIGINAL CODE ---
+    }
+</script>
 </body>
 </html>

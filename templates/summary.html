@@ -10,32 +10,34 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
-        /* --- CUSTOM THEME STYLES (RETAINED) --- */
+        /* --- CUSTOM THEME STYLES (ENHANCED) --- */
         :root {
-            --primary-red: #dc3545; /* Stronger Red 700 */
-            --secondary-red: #EF4444; /* Brighter Red 500 */
+            --primary-red: #d82332; /* Consistent Deep Red */
+            --secondary-red: #b51324; /* Darker Red */
             --green-profit: #10B981; /* Emerald Green */
             --blue-line: #3B82F6; /* Primary Blue for the Profit Line */
-            --shadow-custom: 0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 5px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-custom: 0 18px 35px -5px rgba(0, 0, 0, 0.15), 0 8px 15px -5px rgba(0, 0, 0, 0.08);
             --dark-red-800: #991B1B;
-            --header-orange: #FFDEAD; /* Light Salmon (for Header Background) */
+            --nav-red: #d82332; /* Main Red for header/buttons/active links */
+            --nav-text-light: #ffffff;
         }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f0f4f8; /* Light Blue/Gray Background */
-            padding-top: 80px; /* Style for the fixed header to prevent content overlap */
+            padding-top: 80px;
         }
         .card-shadow {
             box-shadow: var(--shadow-custom);
-            transition: transform 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
         .card-shadow:hover {
-             transform: translateY(-2px);
+             transform: translateY(-5px);
+             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
         .table-header {
             background-color: var(--primary-red);
             color: white;
-            font-weight: 600;
+            font-weight: 700;
         }
         .text-profit { color: var(--green-profit); }
         .text-loss { color: var(--secondary-red); }
@@ -43,51 +45,63 @@
         /* Custom Tailwind focus class for inputs and selects */
         .input-focus-red:focus {
             border-color: var(--primary-red);
-            box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.3); /* Ring color */
+            box-shadow: 0 0 0 4px rgba(216, 35, 50, 0.25); /* Stronger Ring color */
             outline: none;
         }
 
-        /* Custom Gradients for KPI Cards */
-        .gradient-revenue { background-image: linear-gradient(135deg, #10B981, #059669); } /* Green */
-        .gradient-cost { background-image: linear-gradient(135deg, #EF4444, #B91C1C); } /* Red */
-        .gradient-profit { background-image: linear-gradient(135deg, #3B82F6, #2563EB); } /* Blue */
-        .gradient-margin { background-image: linear-gradient(135deg, #F59E0B, #D97706); } /* Amber */
+        /* Custom Gradients for KPI Cards (Enhanced Gradients) */
+        .gradient-revenue { background-image: linear-gradient(135deg, #059669, #10B981); } /* Green */
+        .gradient-cost { background-image: linear-gradient(135deg, #B91C1C, #EF4444); } /* Red */
+        .gradient-profit { background-image: linear-gradient(135deg, #2563EB, #3B82F6); } /* Blue */
+        .gradient-margin { background-image: linear-gradient(135deg, #D97706, #F59E0B); } /* Amber */
 
-        /* Table Striping and Hover */
+        /* Table Striping and Hover (Themed) */
         .table-body tr:nth-child(odd) {
-            background-color: #fef2f2; /* Light red stripe */
+            background-color: #ffebee; /* Very Light Red/Pink stripe */
         }
         .table-body tr:hover {
-            background-color: #fecaca; /* Lighter red on hover */
+            background-color: #fcebeb; /* Lighter red on hover */
             transition: background-color 0.15s ease-in-out;
         }
 
-        /* Chart Background Plugin CSS */
+        /* Chart Background Plugin CSS (Enhanced) */
         .chart-bg {
-            background-image: linear-gradient(to bottom, #ffffff 0%, #FEF2F2 100%);
-            border-radius: 0.75rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            background-image: linear-gradient(to bottom, #ffffff 0%, #FFF8F8 100%);
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f0f0f0;
         }
 
-        /* New Header Styles */
+        /* Header Styles (Red Background) */
         .header-bg {
-            background-color: var(--header-orange);
+            background-color: var(--nav-red); /* Set Header to Red */
         }
-        /* MODIFIED: Header text color is now black */
         .nav-link-style {
-            color: black;
+            color: var(--nav-text-light); /* White text */
             padding: 8px 12px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: 500;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, color 0.3s;
         }
         .nav-link-style:hover {
-            background-color: rgba(0, 0, 0, 0.1); /* Darker hover for light background */
+            background-color: rgba(255, 255, 255, 0.2); /* Light hover on Red background */
+            color: var(--nav-text-light);
         }
         .nav-link-active {
-            background-color: var(--primary-red);
+            background-color: var(--secondary-red); /* Darker Red for Active tab */
             font-weight: 700;
-            color: white; /* IMPORTANT: Active link text must be white for contrast */
+            color: white;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        /* Brand color on red header */
+        .header-brand {
+            color: white !important;
+        }
+        .logo-image {
+            height: 30px; /* Adjust size as needed */
+            width: auto;
+            margin-right: 10px;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -97,8 +111,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
 
             <div class="flex items-center">
-                <a href="#" class="text-3xl font-extrabold text-gray-900 tracking-wider flex items-center">
-                    <i class="bi bi-speedometer2 me-2 text-red-700"></i>Drona Logitech
+                <a href="#" class="text-3xl font-extrabold header-brand tracking-wider flex items-center">
+                    <img src="static/logo.JPG" alt="Company Logo" class="logo-image">
+                    Drona Logitech
                 </a>
             </div>
 
@@ -112,13 +127,13 @@
                 <a class="nav-link-style nav-link-active" href="#">
                     <i class="bi bi-clipboard-data me-2"></i>P&L Dashboard
                 </a>
-                <a class="nav-link-style" href="#">
+                <a class="nav-link-style" href="{{ url_for('index') }}">
                     <i class="bi bi-gear me-2"></i>Settings
                 </a>
             </nav>
 
             <div class="md:hidden">
-                <button class="text-gray-900 focus:outline-none">
+                <button class="text-white focus:outline-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                 </button>
             </div>
@@ -127,88 +142,88 @@
     </header>
     <div class="max-w-7xl mx-auto p-4 md:p-10">
 
-        <h1 class="text-4xl font-extrabold text-gray-900 mb-8 border-b-4 border-red-500 pb-3 tracking-tight">
+        <h1 class="text-4xl font-extrabold text-gray-900 mb-8 border-b-4 border-red-600 pb-3 tracking-tight">
             💰 Financial Performance Dashboard
         </h1>
 
-        <form method="get" action="#" class="bg-white p-7 rounded-xl card-shadow mb-10 border-l-4 border-red-600 transition duration-300 hover:shadow-lg">
+        <form method="get" action="#" class="bg-white p-7 rounded-xl card-shadow mb-10 border-l-8 border-red-600 transition duration-300 hover:shadow-2xl">
             <h3 class="text-2xl font-bold text-gray-800 mb-5">Filter Analysis Period</h3>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
 
                 <div>
                     <label for="start_date" class="block text-sm font-semibold text-gray-700 mb-1">From Date</label>
-                    <input type="date" id="start_date" name="start_date" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
+                    <input type="date" id="start_date" name="start_date" class="block w-full rounded-lg border-2 border-gray-300 shadow-sm p-3 transition duration-150 input-focus-red"
                            value="{{ request.args.get('start_date', '') }}">
                 </div>
 
                 <div>
                     <label for="end_date" class="block text-sm font-semibold text-gray-700 mb-1">To Date</label>
-                    <input type="date" id="end_date" name="end_date" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red"
+                    <input type="date" id="end_date" name="end_date" class="block w-full rounded-lg border-2 border-gray-300 shadow-sm p-3 transition duration-150 input-focus-red"
                            value="{{ request.args.get('end_date', '') }}">
                 </div>
 
                 <div>
                     <label for="customer" class="block text-sm font-semibold text-gray-700 mb-1">Customer Name</label>
-                    <select id="customer" name="customer" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red appearance-none bg-white">
+                    <select id="customer" name="customer" class="block w-full rounded-lg border-2 border-gray-300 shadow-sm p-3 transition duration-150 input-focus-red appearance-none bg-white">
                         </select>
                 </div>
 
                 <div>
                     <label for="location" class="block text-sm font-semibold text-gray-700 mb-1">Site Location</label>
-                    <select id="location" name="location" class="block w-full rounded-lg border-2 border-gray-200 shadow-sm p-3 transition duration-150 input-focus-red appearance-none bg-white">
+                    <select id="location" name="location" class="block w-full rounded-lg border-2 border-gray-300 shadow-sm p-3 transition duration-150 input-focus-red appearance-none bg-white">
                         </select>
                 </div>
             </div>
 
             <div class="flex justify-end space-x-3 mt-8 pt-4 border-t border-gray-100">
-                <a href="{{ url_for('summary') }}" class="px-6 py-3 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150 font-semibold shadow-md">
+                <a href="{{ url_for('summary') }}" class="px-6 py-3 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150 font-semibold shadow-md transform hover:scale-[1.03]">
                     Reset Filters
                 </a>
 
-                <button type="submit" class="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition duration-150 shadow-md focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transform hover:scale-105">
+                <button type="submit" class="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition duration-150 shadow-lg focus:ring-4 focus:ring-red-500 focus:ring-offset-2 transform hover:scale-[1.03]">
                     Apply Filters
                 </button>
             </div>
         </form>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
 
-            <div class="p-6 rounded-xl card-shadow text-white gradient-revenue transform hover:scale-[1.02] transition duration-300 cursor-pointer">
+            <div class="p-6 rounded-xl card-shadow text-white gradient-revenue transform hover:scale-[1.03] transition duration-300 cursor-pointer border-b-4 border-green-300">
                 <p class="text-sm font-medium opacity-80 mb-2">Total Revenue</p>
                 <div class="flex justify-between items-center">
                     <p class="text-3xl font-extrabold tracking-tight">
                         ₹ {{ "{:,.2f}".format(total_revenue) }}
                     </p>
-                    <span class="text-4xl">💸</span>
+                    <span class="text-4xl opacity-70">💸</span>
                 </div>
             </div>
 
-            <div class="p-6 rounded-xl card-shadow text-white gradient-cost transform hover:scale-[1.02] transition duration-300 cursor-pointer">
+            <div class="p-6 rounded-xl card-shadow text-white gradient-cost transform hover:scale-[1.03] transition duration-300 cursor-pointer border-b-4 border-red-300">
                 <p class="text-sm font-medium opacity-80 mb-2">Total Cost</p>
                 <div class="flex justify-between items-center">
                     <p class="text-3xl font-extrabold tracking-tight">
                         ₹ {{ "{:,.2f}".format(total_cost) }}
                     </p>
-                    <span class="text-4xl">📉</span>
+                    <span class="text-4xl opacity-70">📉</span>
                 </div>
             </div>
 
-            <div class="p-6 rounded-xl card-shadow text-white gradient-profit transform hover:scale-[1.02] transition duration-300 cursor-pointer">
+            <div class="p-6 rounded-xl card-shadow text-white gradient-profit transform hover:scale-[1.03] transition duration-300 cursor-pointer border-b-4 border-blue-300">
                 <p class="text-sm font-medium opacity-80 mb-2">Total Net Profit</p>
                 <div class="flex justify-between items-center">
                     <p class="mt-1 text-3xl font-extrabold tracking-tight">
                         ₹ {{ "{:,.2f}".format(total_profit) }}
                     </p>
-                    <span class="text-4xl">📈</span>
+                    <span class="text-4xl opacity-70">📈</span>
                 </div>
             </div>
 
-            <div class="p-6 rounded-xl card-shadow text-white gradient-margin transform hover:scale-[1.02] transition duration-300 cursor-pointer">
+            <div class="p-6 rounded-xl card-shadow text-white gradient-margin transform hover:scale-[1.03] transition duration-300 cursor-pointer border-b-4 border-amber-300">
                 <p class="text-sm font-medium opacity-80 mb-2">Avg. Net Margin</p>
                 <div class="flex justify-between items-center">
                     <p class="mt-1 text-3xl font-extrabold tracking-tight">
                         {{ "{:,.2f}".format(avg_margin) }}%
                     </p>
-                    <span class="text-4xl">🎯</span>
+                    <span class="text-4xl opacity-70">🎯</span>
                 </div>
             </div>
         </div>
@@ -536,7 +551,7 @@
                     scales: {
                         x: { grid: { display: false } },
                         y: {
-                            beginAtZero: false, // Don't force zero to show negative profit clearly
+                            beginAtZero: false,
                             grid: { color: '#E5E7EB', borderDash: [5, 5] },
                             title: { display: true, text: 'Net Profit (₹)' }
                         }
